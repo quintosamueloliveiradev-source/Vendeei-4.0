@@ -380,8 +380,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         {
           event: '*', // Escuta INSERT, UPDATE e DELETE
           schema: 'public',
-          table: 'sales',
-          filter: `user_id=eq.${user.id}`
+          table: 'sales'
         },
         (payload) => {
           console.log('Mudança detectada em "sales":', payload.eventType);
