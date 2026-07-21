@@ -410,7 +410,7 @@ export const Catalog: React.FC = () => {
                             disabled={isSubmitting || cart.length === 0 || !name}
                             className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${isSubmitting || !name ? 'bg-slate-300 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700 active:scale-95'}`}
                         >
-                            {isSubmitting ? 'Processando...' : 'Finalizar Pedido'} <ChevronRight size={18}/>
+                            {isSubmitting ? 'Processando...' : 'Enviar Pedido'} <ChevronRight size={18}/>
                         </button>
                     </div>
                   </>
