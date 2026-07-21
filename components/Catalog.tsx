@@ -437,7 +437,9 @@ export const Catalog: React.FC = () => {
 
                       <div className="space-y-1 pt-2 border-t border-slate-200">
                         <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Chave Pix ({pixSettings.bank || 'Banco'})</p>
-                        <p className="text-sm font-mono font-bold text-slate-800 break-all select-all bg-white p-3 rounded-xl border border-slate-200">{pixSettings.key}</p>
+                        <div className="text-sm font-mono font-bold text-slate-800 break-all select-none bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                          {pixSettings.key}
+                        </div>
                         <button
                           onClick={copiarChavePix}
                           className="w-full mt-2 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 border border-slate-200 active:scale-95"
