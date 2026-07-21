@@ -154,91 +154,35 @@ export const Catalog: React.FC = () => {
   const saveOrder = async () => {
     if (!storeId || cart.length === 0) return null;
     setIsSubmitting(true);
-    
-    const subtotal = total;
-    const costTotal = cart.reduce((sum, item) => {
-      const itemCost = Number(item.costPrice) || 0;
-      return sum + (itemCost * item.quantity);
-    }, 0);
-    
-    // Calcula o lucro garantindo que seja um número válido
-    const profitValue = Number((finalTotalWithCents - costTotal).toFixed(2));
-    const profit = isNaN(profitValue) ? 0 : profitValue;
-
-    // Define expiração (30 minutos a partir de agora)
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-    
-    const salePayload = {
-          user_id: storeId,
-          subtotal,
-          total: finalTotalWithCents,
-          discount: 0,
-          surcharge: 0,
-          profit,
-          customer_name: name,
-          payment_method: paymentMethod,
-          payment_option_type: paymentMethod === 'pix' ? pixSettings.rule : null,
-          status: paymentMethod === 'pix' ? 'awaiting_payment' : 'completed',
-          timestamp: new Date().toISOString(),
-          expires_at: expiresAt
-    };
-
-    console.log('Tentando salvar pedido:', salePayload);
 
     try {
-      const { data: saleData, error: saleError } = await supabase
-        .from('sales')
-        .insert([{
-          user_id: salePayload.user_id,
-          subtotal: salePayload.subtotal,
-          total: salePayload.total,
-          discount: salePayload.discount,
-          surcharge: salePayload.surcharge,
-          profit: salePayload.profit,
-          customer_name: salePayload.customer_name,
-          payment_method: salePayload.payment_method,
-          payment_option_type: salePayload.payment_option_type,
-          status: salePayload.status,
-          timestamp: salePayload.timestamp,
-          expires_at: salePayload.expires_at
-        }])
-        .select('id')
-        .single();
+      const response = await fetch('/api/catalog/order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          storeId,
+          cart,
+          name,
+          paymentMethod,
+          pixSettings,
+          randomCents
+        })
+      });
 
-      if (saleError) throw saleError;
-      
-      const newSaleId = saleData.id;
-
-      // 2. Criar itens da venda
-      const saleItems = cart.map(item => ({
-        user_id: storeId,
-        sale_id: newSaleId,
-        product_id: item.id,
-        name: item.name,
-        quantity: item.quantity,
-        price_at_sale: item.price,
-        cost_price_at_sale: item.costPrice || 0
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('sale_items')
-        .insert(saleItems);
-
-      if (itemsError) throw itemsError;
-
-      // 3. Baixar estoque (Opcional: você pode escolher baixar só na confirmação, mas aqui seguiremos o padrão do PDV)
-      for (const item of cart) {
-        const { data: pData } = await supabase.from('products').select('stock').eq('id', item.id).single();
-        if (pData) {
-          const newStock = Math.max(0, pData.stock - item.quantity);
-          await supabase.from('products').update({ stock: newStock }).eq('id', item.id);
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Falha ao processar pedido no servidor');
       }
 
-      setOrderId(newSaleId);
-      return newSaleId;
-    } catch (err) {
-      console.error('Erro ao salvar pedido:', err);
+      const responseData = await response.json();
+      const newOrderId = responseData.orderId;
+      
+      setOrderId(newOrderId);
+      return newOrderId;
+    } catch (err: any) {
+      console.error('Erro ao salvar pedido via API:', err);
       alert('Erro ao processar pedido no servidor.');
       return null;
     } finally {

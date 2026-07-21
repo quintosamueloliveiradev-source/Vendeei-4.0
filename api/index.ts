@@ -314,6 +314,120 @@ app.get('/api/asaas/payments/:customerId', async (req, res) => {
   }
 });
 
+// Novo Endpoint: Salvar pedidos de clientes do catálogo (Público) de forma segura burlar RLS
+app.post('/api/catalog/order', async (req: express.Request, res: express.Response) => {
+  try {
+    const { storeId, cart, name, paymentMethod, pixSettings, randomCents } = req.body;
+
+    if (!supabaseClient) {
+      return res.status(500).json({
+        success: false,
+        message: 'Cliente Supabase não inicializado no servidor.'
+      });
+    }
+
+    if (!storeId || !cart || cart.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Parâmetros storeId e cart são obrigatórios.'
+      });
+    }
+
+    // Calcular totais
+    const total = cart.reduce((sum: number, p: any) => sum + (p.price * p.quantity), 0);
+    let finalTotalWithCents = total;
+    if (paymentMethod === 'pix') {
+      const cents = Number(randomCents) || 0;
+      if (pixSettings?.rule === 'pix_identified') {
+        finalTotalWithCents = total + cents;
+      } else if (pixSettings?.rule === 'pix_promotional') {
+        finalTotalWithCents = Math.max(0, total - cents);
+      }
+    }
+    // Formatar com 2 casas decimais
+    finalTotalWithCents = Number(finalTotalWithCents.toFixed(2));
+
+    const costTotal = cart.reduce((sum: number, item: any) => {
+      const itemCost = Number(item.costPrice || item.cost_price) || 0;
+      return sum + (itemCost * item.quantity);
+    }, 0);
+
+    const profitValue = Number((finalTotalWithCents - costTotal).toFixed(2));
+    const profit = isNaN(profitValue) ? 0 : profitValue;
+
+    // Define expiração (30 minutos a partir de agora)
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    const orderId = `${Date.now()}`;
+
+    // 1. Criar a venda no banco usando bypass do RLS (Service Role)
+    const { data: saleData, error: saleError } = await supabaseClient
+      .from('sales')
+      .insert([{
+        id: orderId,
+        user_id: storeId,
+        subtotal: total,
+        total: finalTotalWithCents,
+        discount: 0,
+        surcharge: 0,
+        profit,
+        customer_name: name || 'Cliente do Catálogo',
+        payment_method: paymentMethod,
+        payment_option_type: paymentMethod === 'pix' ? (pixSettings?.rule || 'valor_real') : null,
+        status: paymentMethod === 'pix' ? 'awaiting_payment' : 'completed',
+        timestamp: new Date().toISOString(),
+        expires_at: expiresAt
+      }])
+      .select('id')
+      .single();
+
+    if (saleError) {
+      console.error('Erro ao salvar venda no Supabase (Catalog API):', saleError);
+      throw saleError;
+    }
+
+    // 2. Criar itens da venda
+    const saleItems = cart.map((item: any) => ({
+      user_id: storeId,
+      sale_id: orderId,
+      product_id: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      price_at_sale: item.price,
+      cost_price_at_sale: item.costPrice || item.cost_price || 0
+    }));
+
+    const { error: itemsError } = await supabaseClient
+      .from('sale_items')
+      .insert(saleItems);
+
+    if (itemsError) {
+      console.error('Erro ao salvar itens da venda no Supabase (Catalog API):', itemsError);
+      throw itemsError;
+    }
+
+    // 3. Baixar estoque
+    for (const item of cart) {
+      const { data: pData } = await supabaseClient.from('products').select('stock').eq('id', item.id).single();
+      if (pData) {
+        const newStock = Math.max(0, pData.stock - item.quantity);
+        await supabaseClient.from('products').update({ stock: newStock }).eq('id', item.id);
+      }
+    }
+
+    return res.json({
+      success: true,
+      orderId
+    });
+
+  } catch (error: any) {
+    console.error('Erro ao criar pedido do catálogo no servidor:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Erro ao processar pedido no servidor.'
+    });
+  }
+});
+
 // Webhook
 app.post('/api/asaas/webhook', async (req, res) => {
   try {
