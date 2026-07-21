@@ -48,23 +48,41 @@ export const CatalogSettings: React.FC = () => {
   }, [user]);
 
   const formatWhatsApp = (value: string) => {
-    // Remove tudo que não é número
-    const numbers = value.replace(/\D/g, '');
-    
-    // Se começar com 55, remove para re-processar uniformemente
-    let cleanNumbers = numbers;
-    if (cleanNumbers.startsWith('55') && cleanNumbers.length > 10) {
-      cleanNumbers = cleanNumbers.substring(2);
+    // Se o valor estiver totalmente vazio, deixa vazio
+    if (!value) return '';
+
+    // Extrai todos os dígitos
+    const allDigits = value.replace(/\D/g, '');
+
+    // Se só houver os dígitos 5 ou 55 (que pertencem ao prefixo +55) e o usuário está apagando, deixa ele apagar livremente
+    if (allDigits === '' || allDigits === '5' || allDigits === '55') {
+      return value;
     }
 
-    // Limita a 11 dígitos (DDD + Número)
-    cleanNumbers = cleanNumbers.substring(0, 11);
+    // Remove o prefixo "+55" ou "55" se ele já existir no início para obtermos o número puro
+    let clean = allDigits;
+    if (clean.startsWith('55')) {
+      clean = clean.substring(2);
+    }
 
-    // Aplica a máscara
-    if (cleanNumbers.length === 0) return '';
-    if (cleanNumbers.length <= 2) return `+55 (${cleanNumbers}`;
-    if (cleanNumbers.length <= 7) return `+55 (${cleanNumbers.substring(0, 2)}) ${cleanNumbers.substring(2)}`;
-    return `+55 (${cleanNumbers.substring(0, 2)}) ${cleanNumbers.substring(2, 7)}-${cleanNumbers.substring(7)}`;
+    // Limita o DDD + Celular a 11 dígitos (padrão brasileiro)
+    clean = clean.substring(0, 11);
+
+    // Se sobrou algum número, formata com +55 e a máscara padrão brasileira
+    if (clean.length === 0) {
+      return '';
+    }
+
+    if (clean.length <= 2) {
+      return `+55 (${clean}`;
+    }
+    if (clean.length <= 6) {
+      return `+55 (${clean.substring(0, 2)}) ${clean.substring(2)}`;
+    }
+    if (clean.length <= 10) {
+      return `+55 (${clean.substring(0, 2)}) ${clean.substring(2, 6)}-${clean.substring(6)}`;
+    }
+    return `+55 (${clean.substring(0, 2)}) ${clean.substring(2, 7)}-${clean.substring(7)}`;
   };
 
   const handleUpdate = async (newCatalogOpen: boolean, newWhatsapp: string, newPixKey?: string, newPixBank?: string, newPixRule?: string) => {
