@@ -245,7 +245,7 @@ export const Catalog: React.FC = () => {
       `*Pedido:* #${orderId}\n` +
       `*Cliente:* ${name}\n` +
       `*Valor Pago:* R$ ${finalTotalWithCents.toFixed(2)}\n\n` +
-      `Envie o comprovante antes das ${formattedExpirationTime} para evitar cancelamento automático do seu pedido.`;
+      `Envie o comprovante antes das *${formattedExpirationTime}* para evitar cancelamento automático do seu pedido.`;
       
     window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(proofMessage)}`, '_blank');
     
