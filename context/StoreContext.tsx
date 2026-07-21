@@ -4,6 +4,7 @@ import { Product, Sale, CartItem, Profile, Customer } from '../types';
 import { INITIAL_PRODUCTS } from '../constants';
 import { supabase } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
+import { playOrderEnteredSound, playOrderCanceledSound } from '../services/audioService';
 
 interface Toast {
   id: number;
@@ -385,6 +386,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         (payload) => {
           console.log('Mudança detectada em "sales":', payload.eventType);
           fetchSales();
+          if (payload.eventType === 'INSERT') {
+            playOrderEnteredSound();
+          } else if (payload.eventType === 'DELETE') {
+            playOrderCanceledSound();
+          }
         }
       )
       .subscribe((status) => {
@@ -610,6 +616,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
       clearCart();
       addToast(`Venda #${formattedId} realizada com sucesso! (Modo Demo)`, 'success');
+      playOrderEnteredSound();
       return newSale;
     }
 
@@ -752,6 +759,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       }));
 
       addToast(`Venda #${saleId} estornada (Modo Demo)`, 'info');
+      playOrderCanceledSound();
       return { success: true, message: 'Venda estornada.' };
     }
 
