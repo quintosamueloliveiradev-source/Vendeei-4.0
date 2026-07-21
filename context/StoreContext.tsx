@@ -66,6 +66,44 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setIsDemoMode(true);
   };
 
+  const fetchProducts = async () => {
+    if (isDemoMode) {
+      const savedProducts = localStorage.getItem('vendeei_demo_products');
+      let loadedProducts = INITIAL_PRODUCTS;
+      if (savedProducts) {
+        try {
+          loadedProducts = JSON.parse(savedProducts);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      setProducts(loadedProducts);
+      return;
+    }
+
+    if (!user?.id) return;
+    try {
+      const { data: productsData } = await supabase
+        .from('products')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name');
+      
+      if (productsData) {
+        setProducts(productsData.map(p => ({
+          ...p,
+          costPrice: Number(p.cost_price),
+          price: Number(p.price),
+          imageUrl: p.image_url
+        })));
+      } else {
+        setProducts([]);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar produtos:', err);
+    }
+  };
+
   const fetchSales = async () => {
     if (isDemoMode) {
       const savedSales = localStorage.getItem('vendeei_demo_sales');
@@ -336,22 +374,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
 
         // 2. Buscar Produtos do Usuário
-        const { data: productsData } = await supabase
-          .from('products')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('name');
-        
-        if (productsData && productsData.length > 0) {
-          setProducts(productsData.map(p => ({
-            ...p,
-            costPrice: Number(p.cost_price),
-            price: Number(p.price),
-            imageUrl: p.image_url
-          })));
-        } else {
-          setProducts([]);
-        }
+        await fetchProducts();
 
         // 3. Buscar Vendas do Usuário
         await fetchSales();
@@ -367,14 +390,14 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     loadProfileData();
   }, [user?.id, isDemoMode]);
 
-  // Realtime Subscription para Vendas
+  // Realtime Subscription para Vendas e Produtos (Estoque)
   useEffect(() => {
     if (isDemoMode) return;
     if (!user?.id) return;
 
-    console.log('Iniciando subscrição Realtime para vendas...');
+    console.log('Iniciando subscrições Realtime para vendas e produtos...');
     
-    const channel = supabase
+    const salesChannel = supabase
       .channel(`realtime-sales-${user.id}`)
       .on(
         'postgres_changes',
@@ -386,6 +409,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         (payload) => {
           console.log('Mudança detectada em "sales":', payload.eventType);
           fetchSales();
+          fetchProducts();
           if (payload.eventType === 'INSERT') {
             playOrderEnteredSound();
           } else if (payload.eventType === 'DELETE') {
@@ -395,13 +419,34 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('Conectado ao Realtime em StoreContext!');
+          console.log('Conectado ao Realtime de Vendas!');
+        }
+      });
+
+    const productsChannel = supabase
+      .channel(`realtime-products-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escuta INSERT, UPDATE e DELETE
+          schema: 'public',
+          table: 'products'
+        },
+        (payload) => {
+          console.log('Mudança detectada em "products":', payload.eventType);
+          fetchProducts();
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Conectado ao Realtime de Produtos/Estoque!');
         }
       });
 
     return () => {
-      console.log('Limpando subscrição Realtime...');
-      supabase.removeChannel(channel);
+      console.log('Limpando subscrições Realtime...');
+      supabase.removeChannel(salesChannel);
+      supabase.removeChannel(productsChannel);
     };
   }, [user?.id]);
 
