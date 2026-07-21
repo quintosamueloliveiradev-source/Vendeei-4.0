@@ -429,6 +429,81 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
   }
 });
 
+// Cancelar pedido e devolver estoque
+app.post('/api/catalog/cancel-order', async (req: express.Request, res: express.Response) => {
+  try {
+    const { orderId, storeId } = req.body;
+
+    if (!supabaseClient) {
+      return res.status(500).json({
+        success: false,
+        message: 'Cliente Supabase não inicializado no servidor.'
+      });
+    }
+
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Parâmetro orderId é obrigatório.'
+      });
+    }
+
+    console.log(`Iniciando cancelamento do pedido #${orderId} para restaurar estoque...`);
+
+    // 1. Buscar os itens da venda para saber a quantidade e o produto para devolver ao estoque
+    const { data: items, error: itemsError } = await supabaseClient
+      .from('sale_items')
+      .select('product_id, quantity')
+      .eq('sale_id', orderId);
+
+    if (itemsError) {
+      console.error('Erro ao buscar itens da venda para cancelamento:', itemsError);
+    } else if (items && items.length > 0) {
+      // 2. Devolver estoque
+      for (const item of items) {
+        if (item.product_id) {
+          const { data: pData } = await supabaseClient
+            .from('products')
+            .select('stock')
+            .eq('id', item.product_id)
+            .single();
+          if (pData) {
+            const newStock = pData.stock + item.quantity;
+            await supabaseClient
+              .from('products')
+              .update({ stock: newStock })
+              .eq('id', item.product_id);
+            console.log(`Estoque do produto ${item.product_id} atualizado de ${pData.stock} para ${newStock}`);
+          }
+        }
+      }
+    }
+
+    // 3. Deletar a venda (faria CASCADE delete em sale_items)
+    const { error: deleteError } = await supabaseClient
+      .from('sales')
+      .delete()
+      .eq('id', orderId);
+
+    if (deleteError) {
+      console.error('Erro ao deletar venda:', deleteError);
+      throw deleteError;
+    }
+
+    return res.json({
+      success: true,
+      message: 'Pedido cancelado e estoque devolvido com sucesso.'
+    });
+
+  } catch (error: any) {
+    console.error('Erro ao cancelar pedido no servidor:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Erro ao cancelar pedido no servidor.'
+    });
+  }
+});
+
 // Webhook
 app.post('/api/asaas/webhook', async (req, res) => {
   try {

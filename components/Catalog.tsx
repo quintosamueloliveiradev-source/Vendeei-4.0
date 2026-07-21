@@ -213,6 +213,47 @@ export const Catalog: React.FC = () => {
     }
   };
 
+  const handleCancelarPedidoAtual = async (action: 'back' | 'full') => {
+    if (!orderId) {
+      if (action === 'full') {
+        setCart([]);
+        setIsCartOpen(false);
+      }
+      setCheckoutStep('cart');
+      return;
+    }
+
+    try {
+      console.log(`Cancelando pedido #${orderId} em tempo real...`);
+      const response = await fetch('/api/catalog/cancel-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          orderId,
+          storeId
+        })
+      });
+
+      if (!response.ok) {
+        console.error('Falha ao cancelar pedido no servidor.');
+      }
+    } catch (err) {
+      console.error('Erro ao chamar cancelamento de pedido:', err);
+    } finally {
+      // Limpa as variáveis do pedido localmente
+      setOrderId(null);
+      setExpiresAt(null);
+      
+      if (action === 'full') {
+        setCart([]);
+        setIsCartOpen(false);
+      }
+      setCheckoutStep('cart');
+    }
+  };
+
   const sendWhatsAppOrder = async () => {
     const id = await saveOrder();
     if (!id) return;
@@ -350,8 +391,12 @@ export const Catalog: React.FC = () => {
                         {checkoutStep === 'cart' ? 'Seu Pedido' : 'Pagamento Pix'}
                     </h2>
                     <button onClick={() => {
-                        setIsCartOpen(false);
-                        setCheckoutStep('cart');
+                        if (checkoutStep === 'pix_instructions') {
+                            handleCancelarPedidoAtual('full');
+                        } else {
+                            setIsCartOpen(false);
+                            setCheckoutStep('cart');
+                        }
                     }}><X size={24}/></button>
                 </div>
                 
@@ -478,11 +523,19 @@ export const Catalog: React.FC = () => {
                       >
                         Enviar Comprovante <ChevronRight size={18}/>
                       </button>
+
                       <button 
-                        onClick={() => setCheckoutStep('cart')}
-                        className="w-full py-3 text-slate-500 font-bold text-sm"
+                        onClick={() => handleCancelarPedidoAtual('full')}
+                        className="w-full py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 border border-red-100 active:scale-95"
                       >
-                        Voltar
+                        <Trash2 size={14} /> Cancelar Pedido e Limpar Carrinho
+                      </button>
+
+                      <button 
+                        onClick={() => handleCancelarPedidoAtual('back')}
+                        className="w-full py-2 text-slate-400 hover:text-slate-600 font-medium text-xs text-center transition-colors"
+                      >
+                        Voltar para o carrinho
                       </button>
                     </div>
                   </div>
