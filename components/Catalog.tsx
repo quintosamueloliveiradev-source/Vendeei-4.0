@@ -238,11 +238,14 @@ export const Catalog: React.FC = () => {
   const sendPixProof = () => {
     if (!orderId) return;
     const cleanPhone = whatsappNumber.replace(/\D/g, '');
+    const expiryDate = new Date(Date.now() + 30 * 60 * 1000);
+    const formattedExpirationTime = expiryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
     const proofMessage = `*✅ COMPROVANTE DE PAGAMENTO*\n` +
       `*Pedido:* #${orderId}\n` +
       `*Cliente:* ${name}\n` +
       `*Valor Pago:* R$ ${finalTotalWithCents.toFixed(2)}\n\n` +
-      `Estou enviando o comprovante em anexo.`;
+      `Envie o comprovante antes das ${formattedExpirationTime} para evitar cancelamento automático do seu pedido.`;
       
     window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(proofMessage)}`, '_blank');
     
