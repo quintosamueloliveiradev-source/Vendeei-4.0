@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ViewState } from '../types';
-import { LayoutDashboard, ShoppingCart, Package, History, Users, Store, Settings, ShieldCheck, LogOut, Share2 } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, History, Users, Store, Settings, ShieldCheck, LogOut, Share2, Volume2, VolumeX } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
+import { isAudioSuspended, unlockAudioContext, playOrderEnteredSound } from '../services/audioService';
 
 interface SidebarProps {
   currentView: ViewState;
@@ -10,6 +11,42 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
   const { user, profile, signOut, isDemoMode } = useStore();
+  const [isMuted, setIsMuted] = useState(true);
+
+  useEffect(() => {
+    const checkStatus = () => {
+      setIsMuted(isAudioSuspended());
+    };
+    
+    // Check initially
+    checkStatus();
+
+    // Listen to user interactions to sync when the browser unlocks
+    const handleUnlock = () => {
+      setTimeout(() => {
+        checkStatus();
+      }, 100);
+    };
+
+    window.addEventListener('click', handleUnlock, { capture: true, passive: true });
+    window.addEventListener('keydown', handleUnlock, { capture: true, passive: true });
+    window.addEventListener('touchstart', handleUnlock, { capture: true, passive: true });
+
+    return () => {
+      window.removeEventListener('click', handleUnlock, { capture: true });
+      window.removeEventListener('keydown', handleUnlock, { capture: true });
+      window.removeEventListener('touchstart', handleUnlock, { capture: true });
+    };
+  }, []);
+
+  const handleSoundControlClick = () => {
+    unlockAudioContext().then(() => {
+      setIsMuted(false);
+      playOrderEnteredSound();
+    }).catch(err => {
+      console.error('Falha ao desbloquear áudio:', err);
+    });
+  };
 
   const navItems: { id: ViewState; label: string; icon: React.ReactNode; hidden?: boolean }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
@@ -63,6 +100,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
       </nav>
 
       <div className="p-3 space-y-2 border-t border-slate-700 mt-auto bg-slate-900/50">
+        {/* Sound Alerter Control */}
+        <button
+          onClick={handleSoundControlClick}
+          className={`w-full flex items-center justify-center lg:justify-start gap-3 p-2 lg:p-2.5 rounded-lg transition-all border font-title-md text-xs font-medium tracking-wide cursor-pointer ${
+            isMuted 
+              ? 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/20 animate-pulse' 
+              : 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20'
+          }`}
+          title={isMuted ? "O navegador bloqueou o áudio. Toque aqui para ativar!" : "Sons de pedidos ativos. Toque para testar o sino!"}
+        >
+          {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          <span className="hidden lg:block">
+            {isMuted ? 'Ativar Alertas de Som' : 'Testar Alertas de Som'}
+          </span>
+        </button>
+
         <div className="hidden lg:block px-2.5 py-1">
           <p className="text-[10px] text-slate-400 truncate font-medium" title={user?.email}>
             {user?.email}

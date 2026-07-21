@@ -15,6 +15,54 @@ function getAudioCtx(): AudioContext | null {
 }
 
 /**
+ * Checks if the AudioContext is currently suspended due to browser Autoplay policies.
+ */
+export function isAudioSuspended(): boolean {
+  const ctx = getAudioCtx();
+  if (!ctx) return true;
+  return ctx.state === 'suspended';
+}
+
+/**
+ * Force unlock/resume of the AudioContext.
+ */
+export function unlockAudioContext(): Promise<void> {
+  const ctx = getAudioCtx();
+  if (!ctx) return Promise.resolve();
+  if (ctx.state === 'suspended') {
+    return ctx.resume();
+  }
+  return Promise.resolve();
+}
+
+// Automatically register interaction listeners to seamlessly unlock audio on first click, tap, or key press
+if (typeof window !== 'undefined') {
+  const unlock = () => {
+    const ctx = getAudioCtx();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().then(() => {
+        console.log('AudioContext desbloqueado automaticamente por interação.');
+        cleanup();
+      }).catch(err => {
+        console.error('Falha ao resumir AudioContext:', err);
+      });
+    } else if (ctx && ctx.state === 'running') {
+      cleanup();
+    }
+  };
+
+  const cleanup = () => {
+    window.removeEventListener('click', unlock);
+    window.removeEventListener('keydown', unlock);
+    window.removeEventListener('touchstart', unlock);
+  };
+
+  window.addEventListener('click', unlock, { passive: true });
+  window.addEventListener('keydown', unlock, { passive: true });
+  window.addEventListener('touchstart', unlock, { passive: true });
+}
+
+/**
  * Play a cheerful, ascending notification chime when a new order comes in.
  */
 export function playOrderEnteredSound() {
@@ -81,3 +129,4 @@ export function playOrderCanceledSound() {
     osc.stop(now + index * 0.12 + duration);
   });
 }
+
