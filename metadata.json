@@ -1,0 +1,6 @@
+{
+  "name": "Remix: Vendeei - Gestão Inteligente MVP 3",
+  "description": "Um sistema moderno de Ponto de Venda (PDV) e Gestão de Estoque com persistência de dados e analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
