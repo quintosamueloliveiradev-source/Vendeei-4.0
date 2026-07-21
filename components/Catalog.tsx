@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, ShoppingBag, Plus, Minus, X, Trash2, ChevronRight, Store, QrCode } from 'lucide-react';
+import { Search, ShoppingBag, Plus, Minus, X, Trash2, ChevronRight, Store, QrCode, Copy, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Product } from '../types';
 
@@ -33,6 +33,14 @@ export const Catalog: React.FC = () => {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'pix_instructions'>('cart');
+  const [copied, setCopied] = useState(false);
+
+  const copiarChavePix = () => {
+    if (!pixSettings.key) return;
+    navigator.clipboard.writeText(pixSettings.key);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
   
   useEffect(() => {
     // Gera valor aleatório entre 0.01 e 0.20 apenas quando a opção Pix muda
@@ -430,6 +438,22 @@ export const Catalog: React.FC = () => {
                       <div className="space-y-1 pt-2 border-t border-slate-200">
                         <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Chave Pix ({pixSettings.bank || 'Banco'})</p>
                         <p className="text-sm font-mono font-bold text-slate-800 break-all select-all bg-white p-3 rounded-xl border border-slate-200">{pixSettings.key}</p>
+                        <button
+                          onClick={copiarChavePix}
+                          className="w-full mt-2 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 border border-slate-200 active:scale-95"
+                        >
+                          {copied ? (
+                            <>
+                              <Check size={14} className="text-emerald-600 animate-bounce" />
+                              <span className="text-emerald-600">Chave Copiada!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={14} />
+                              <span>Copiar Chave Pix</span>
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
 
