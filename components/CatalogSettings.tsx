@@ -170,10 +170,6 @@ export const CatalogSettings: React.FC = () => {
               placeholder="+55 (00) 00000-0000"
               className="w-full p-2 border rounded-lg font-mono"
           />
-
-          <button onClick={handleSaveAll} className="w-full bg-emerald-600 text-white p-2 rounded-lg font-bold flex items-center justify-center gap-2">
-              <Save size={18}/> Salvar Configurações
-          </button>
         </div>
 
         <div className="space-y-3 pt-4 border-t border-slate-100">
@@ -182,7 +178,11 @@ export const CatalogSettings: React.FC = () => {
             <label className="block text-xs font-semibold text-slate-500 uppercase">Regra de Cobrança Pix</label>
             <select 
                 value={pixRule}
-                onChange={e => setPixRule(e.target.value as any)}
+                onChange={e => {
+                  const val = e.target.value as any;
+                  setPixRule(val);
+                  handleUpdate(isCatalogOpen, whatsapp, pixKey, pixBank, val);
+                }}
                 className="w-full p-2 border rounded-lg text-sm"
             >
                 <option value="valor_real">Valor Real (Preço original)</option>
@@ -209,6 +209,10 @@ export const CatalogSettings: React.FC = () => {
             />
           </div>
         </div>
+
+        <button onClick={handleSaveAll} className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-lg font-bold flex items-center justify-center gap-2 transition-all active:scale-95">
+            <Save size={18}/> Salvar Configurações
+        </button>
       </div>
 
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
