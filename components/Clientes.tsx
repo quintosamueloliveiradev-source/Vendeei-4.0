@@ -39,6 +39,7 @@ export const Clientes: React.FC = () => {
           name: c.name,
           contact: c.phone,
           cpf: c.cpf,
+          email: c.email,
           createdAt: new Date(c.created_at).toLocaleDateString('pt-BR'),
           totalSpent: Number(c.total_spent)
         })));
@@ -54,7 +55,7 @@ export const Clientes: React.FC = () => {
     fetchCustomers();
   }, [user]);
 
-  const handleSaveCustomer = async (name: string, contact: string, cpf: string) => {
+  const handleSaveCustomer = async (name: string, contact: string, cpf: string, email: string) => {
     if (loading || !user) return;
 
     try {
@@ -65,7 +66,8 @@ export const Clientes: React.FC = () => {
           .update({
             name: name.toUpperCase().trim(),
             phone: contact,
-            cpf
+            cpf,
+            email: email.trim()
           })
           .eq('id', editingCustomerId);
         
@@ -78,7 +80,8 @@ export const Clientes: React.FC = () => {
             user_id: user.id,
             name: name.toUpperCase().trim(),
             phone: contact,
-            cpf
+            cpf,
+            email: email.trim()
           }]);
 
         if (error) throw error;
@@ -217,7 +220,10 @@ export const Clientes: React.FC = () => {
               ) : (
                 customers.map((c) => (
                   <tr key={c.id}>
-                    <td className="py-4 font-medium text-slate-900">{c.name}</td>
+                    <td className="py-4 font-medium text-slate-900">
+                      <div>{c.name}</div>
+                      {c.email && <div className="text-xs text-slate-400 font-normal normal-case">{c.email}</div>}
+                    </td>
                     <td className="py-4">{c.contact}</td>
                     <td className="py-4">{c.cpf}</td>
                     <td className="py-4">{c.createdAt}</td>

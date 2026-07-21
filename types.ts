@@ -18,6 +18,7 @@ export interface Customer {
   cpf: string;
   createdAt: string;
   totalSpent: number;
+  email?: string;
 }
 
 export interface CartItem extends Product {

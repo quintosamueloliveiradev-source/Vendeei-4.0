@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Phone, CreditCard } from 'lucide-react';
+import { X, User, Phone, CreditCard, Mail } from 'lucide-react';
 import { Customer } from '../types';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (name: string, contact: string, cpf: string) => Promise<void>;
+  onSave: (name: string, contact: string, cpf: string, email: string) => Promise<void>;
   editingCustomer?: Customer | null;
 }
 
@@ -13,6 +13,7 @@ export const CustomerFormModal: React.FC<Props> = ({ isOpen, onClose, onSave, ed
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
   const [cpf, setCpf] = useState('');
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
     if (editingCustomer) {
@@ -20,11 +21,13 @@ export const CustomerFormModal: React.FC<Props> = ({ isOpen, onClose, onSave, ed
       setName(editingCustomer.name || '');
       setContact(editingCustomer.contact || '');
       setCpf(editingCustomer.cpf || '');
+      setEmail(editingCustomer.email || '');
     } else {
       console.log('New customer mode');
       setName('');
       setContact('');
       setCpf('');
+      setEmail('');
     }
   }, [editingCustomer, isOpen]);
 
@@ -42,7 +45,7 @@ export const CustomerFormModal: React.FC<Props> = ({ isOpen, onClose, onSave, ed
         <h3 className="text-lg font-bold text-slate-900 mb-6">{editingCustomer ? 'Editar Cliente' : 'Novo Cliente'}</h3>
         <form onSubmit={async (e) => {
           e.preventDefault();
-          await onSave(name, contact, cpf);
+          await onSave(name, contact, cpf, email);
         }} className="space-y-4">
           <div className="space-y-1">
             <label className="text-[11px] text-slate-600 uppercase tracking-wider flex items-center gap-1.5 font-semibold">
@@ -87,6 +90,21 @@ export const CustomerFormModal: React.FC<Props> = ({ isOpen, onClose, onSave, ed
                 className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 focus:outline-none transition-all placeholder:text-slate-400 text-sm"
               />
               <CreditCard size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-slate-600 uppercase tracking-wider flex items-center gap-1.5 font-semibold">
+              <Mail size={10} className="text-slate-400" /> E-mail
+            </label>
+            <div className="relative">
+              <input 
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Ex: exemplo@email.com"
+                className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 focus:outline-none transition-all placeholder:text-slate-400 text-sm"
+              />
+              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             </div>
           </div>
           <div className="flex gap-3 pt-4">
