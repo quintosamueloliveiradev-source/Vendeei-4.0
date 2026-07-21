@@ -17,7 +17,11 @@ export const Catalog: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   
   // Checkout State
-  const [name, setName] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerLastName, setCustomerLastName] = useState('');
+  const [customerCpf, setCustomerCpf] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
   const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
   const [address, setAddress] = useState('');
   const [number, setNumber] = useState('');
@@ -34,6 +38,14 @@ export const Catalog: React.FC = () => {
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'pix_instructions'>('cart');
   const [copied, setCopied] = useState(false);
+
+  const resetCustomerForm = () => {
+    setCustomerName('');
+    setCustomerLastName('');
+    setCustomerCpf('');
+    setCustomerPhone('');
+    setCustomerEmail('');
+  };
 
   const copiarChavePix = () => {
     if (!pixSettings.key) return;
@@ -176,6 +188,8 @@ export const Catalog: React.FC = () => {
     if (!storeId || cart.length === 0) return null;
     setIsSubmitting(true);
 
+    const fullName = `${customerName} ${customerLastName}`.trim();
+
     try {
       const response = await fetch('/api/catalog/order', {
         method: 'POST',
@@ -185,7 +199,12 @@ export const Catalog: React.FC = () => {
         body: JSON.stringify({
           storeId,
           cart,
-          name,
+          name: fullName,
+          customerName,
+          customerLastName,
+          customerCpf,
+          customerPhone,
+          customerEmail,
           paymentMethod,
           pixSettings,
           randomCents
@@ -265,6 +284,8 @@ export const Catalog: React.FC = () => {
         return;
     }
 
+    const fullName = `${customerName} ${customerLastName}`.trim();
+
     const addressStr = deliveryType === 'delivery' 
         ? `\n*Endereço:* ${address}, ${number} - ${neighborhood}${reference ? ` (${reference})` : ''}` 
         : '';
@@ -275,7 +296,9 @@ export const Catalog: React.FC = () => {
 
     const message = `*🛍️ NOVO PEDIDO #${id} - Vendeei*\n` +
       `--------------------------------\n` +
-      `*Cliente:* ${name}\n` +
+      `*Cliente:* ${fullName}\n` +
+      (customerPhone ? `*Telefone:* ${customerPhone}\n` : '') +
+      (customerEmail ? `*E-mail:* ${customerEmail}\n` : '') +
       `*Entrega:* ${deliveryType === 'pickup' ? 'Retirada no Balcão' : 'Entrega em Casa'}` +
       `${addressStr}\n` +
       `--------------------------------\n` +
@@ -294,7 +317,7 @@ export const Catalog: React.FC = () => {
       // Limpa o carrinho e fecha
       setCart([]);
       setIsCartOpen(false);
-      setName('');
+      resetCustomerForm();
       setOrderId(null);
       setExpiresAt(null);
     }
@@ -305,10 +328,11 @@ export const Catalog: React.FC = () => {
     const cleanPhone = whatsappNumber.replace(/\D/g, '');
     const expiryDate = expiresAt ? new Date(expiresAt) : new Date(Date.now() + 30 * 60 * 1000);
     const formattedExpirationTime = expiryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const fullName = `${customerName} ${customerLastName}`.trim();
 
     const proofMessage = `*✅ COMPROVANTE DE PAGAMENTO*\n` +
       `*Pedido:* #${orderId}\n` +
-      `*Cliente:* ${name}\n` +
+      `*Cliente:* ${fullName}\n` +
       `*Valor Pago:* R$ ${finalTotalWithCents.toFixed(2)}\n\n` +
       `Envie o comprovante antes das *${formattedExpirationTime}* para evitar cancelamento automático do seu pedido.`;
       
@@ -317,7 +341,7 @@ export const Catalog: React.FC = () => {
     // Finaliza o fluxo
     setCart([]);
     setIsCartOpen(false);
-    setName('');
+    resetCustomerForm();
     setOrderId(null);
     setExpiresAt(null);
     setCheckoutStep('cart');
@@ -421,7 +445,52 @@ export const Catalog: React.FC = () => {
                     </div>
 
                     <div className="space-y-4 border-t pt-4">
-                        <input value={name} onChange={e => setName(e.target.value)} placeholder="Seu Nome" className="w-full border p-2 rounded-lg" />
+                        {/* DADOS DO CLIENTE */}
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="Nome *"
+                                    value={customerName}
+                                    onChange={(e) => setCustomerName(e.target.value)}
+                                    required
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-green-500"
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Sobrenome"
+                                    value={customerLastName}
+                                    onChange={(e) => setCustomerLastName(e.target.value)}
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-green-500"
+                                />
+                            </div>
+
+                            <input
+                                type="text"
+                                placeholder="CPF (Opcional)"
+                                value={customerCpf}
+                                onChange={(e) => setCustomerCpf(e.target.value)}
+                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-green-500"
+                            />
+
+                            <input
+                                type="tel"
+                                placeholder="WhatsApp / Telefone *"
+                                value={customerPhone}
+                                onChange={(e) => setCustomerPhone(e.target.value)}
+                                required
+                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-green-500"
+                            />
+
+                            <input
+                                type="email"
+                                placeholder="E-mail *"
+                                value={customerEmail}
+                                onChange={(e) => setCustomerEmail(e.target.value)}
+                                required
+                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-green-500"
+                            />
+                        </div>
                         
                         <div className="flex gap-2">
                             <button onClick={() => setDeliveryType('pickup')} className={`flex-1 p-2 rounded-lg ${deliveryType === 'pickup' ? 'bg-green-600 text-white' : 'bg-slate-100'}`}>Retirada</button>
@@ -464,8 +533,8 @@ export const Catalog: React.FC = () => {
 
                         <button 
                             onClick={sendWhatsAppOrder}
-                            disabled={isSubmitting || cart.length === 0 || !name}
-                            className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${isSubmitting || !name ? 'bg-slate-300 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700 active:scale-95'}`}
+                            disabled={isSubmitting || cart.length === 0 || !customerName.trim() || !customerPhone.trim() || !customerEmail.trim()}
+                            className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${isSubmitting || !customerName.trim() || !customerPhone.trim() || !customerEmail.trim() ? 'bg-slate-300 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700 active:scale-95'}`}
                         >
                             {isSubmitting ? 'Processando...' : 'Enviar Pedido'} <ChevronRight size={18}/>
                         </button>

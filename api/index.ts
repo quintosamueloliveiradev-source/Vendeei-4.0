@@ -317,7 +317,7 @@ app.get('/api/asaas/payments/:customerId', async (req, res) => {
 // Novo Endpoint: Salvar pedidos de clientes do catálogo (Público) de forma segura burlar RLS
 app.post('/api/catalog/order', async (req: express.Request, res: express.Response) => {
   try {
-    const { storeId, cart, name, paymentMethod, pixSettings, randomCents } = req.body;
+    const { storeId, cart, name, customerName, customerLastName, customerCpf, customerPhone, customerEmail, paymentMethod, pixSettings, randomCents } = req.body;
 
     if (!supabaseClient) {
       return res.status(500).json({
@@ -359,6 +359,64 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
     const orderId = `${Date.now()}`;
 
+    const constructedName = `${customerName || ''} ${customerLastName || ''}`.trim();
+    const finalCustomerName = constructedName || name || 'Cliente do Catálogo';
+
+    // 0. Salvar ou atualizar cliente na tabela 'customers'
+    if (storeId) {
+      try {
+        let existingCust = null;
+        if (customerPhone) {
+          const { data: byPhone } = await supabaseClient
+            .from('customers')
+            .select('id, total_spent')
+            .eq('user_id', storeId)
+            .eq('phone', customerPhone)
+            .maybeSingle();
+          existingCust = byPhone;
+        }
+
+        if (!existingCust && customerEmail) {
+          const { data: byEmail } = await supabaseClient
+            .from('customers')
+            .select('id, total_spent')
+            .eq('user_id', storeId)
+            .eq('email', customerEmail)
+            .maybeSingle();
+          existingCust = byEmail;
+        }
+
+        if (existingCust) {
+          const currentSpent = Number(existingCust.total_spent) || 0;
+          await supabaseClient
+            .from('customers')
+            .update({
+              name: finalCustomerName.toUpperCase(),
+              last_name: customerLastName || undefined,
+              phone: customerPhone || undefined,
+              cpf: customerCpf || undefined,
+              email: customerEmail || undefined,
+              total_spent: currentSpent + finalTotalWithCents
+            })
+            .eq('id', existingCust.id);
+        } else {
+          await supabaseClient
+            .from('customers')
+            .insert([{
+              user_id: storeId,
+              name: finalCustomerName.toUpperCase(),
+              last_name: customerLastName || '',
+              phone: customerPhone || '',
+              cpf: customerCpf || '',
+              email: customerEmail || '',
+              total_spent: finalTotalWithCents
+            }]);
+        }
+      } catch (custErr) {
+        console.error('Erro ao salvar/atualizar cliente na base customers:', custErr);
+      }
+    }
+
     // 1. Criar a venda no banco usando bypass do RLS (Service Role)
     const { data: saleData, error: saleError } = await supabaseClient
       .from('sales')
@@ -370,7 +428,7 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
         discount: 0,
         surcharge: 0,
         profit,
-        customer_name: name || 'Cliente do Catálogo',
+        customer_name: finalCustomerName,
         payment_method: paymentMethod,
         payment_option_type: paymentMethod === 'pix' ? (pixSettings?.rule || 'valor_real') : null,
         status: paymentMethod === 'pix' ? 'awaiting_payment' : 'completed',
