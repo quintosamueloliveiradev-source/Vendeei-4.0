@@ -416,7 +416,8 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
 
     return res.json({
       success: true,
-      orderId
+      orderId,
+      expiresAt
     });
 
   } catch (error: any) {

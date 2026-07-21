@@ -31,6 +31,7 @@ export const Catalog: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [randomCents, setRandomCents] = useState(0);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'pix_instructions'>('cart');
   
   useEffect(() => {
@@ -178,8 +179,10 @@ export const Catalog: React.FC = () => {
 
       const responseData = await response.json();
       const newOrderId = responseData.orderId;
+      const orderExpiresAt = responseData.expiresAt;
       
       setOrderId(newOrderId);
+      setExpiresAt(orderExpiresAt || null);
       return newOrderId;
     } catch (err: any) {
       console.error('Erro ao salvar pedido via API:', err);
@@ -232,13 +235,14 @@ export const Catalog: React.FC = () => {
       setIsCartOpen(false);
       setName('');
       setOrderId(null);
+      setExpiresAt(null);
     }
   };
 
   const sendPixProof = () => {
     if (!orderId) return;
     const cleanPhone = whatsappNumber.replace(/\D/g, '');
-    const expiryDate = new Date(Date.now() + 30 * 60 * 1000);
+    const expiryDate = expiresAt ? new Date(expiresAt) : new Date(Date.now() + 30 * 60 * 1000);
     const formattedExpirationTime = expiryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     const proofMessage = `*✅ COMPROVANTE DE PAGAMENTO*\n` +
@@ -254,6 +258,7 @@ export const Catalog: React.FC = () => {
     setIsCartOpen(false);
     setName('');
     setOrderId(null);
+    setExpiresAt(null);
     setCheckoutStep('cart');
   };
 
