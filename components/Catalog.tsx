@@ -100,23 +100,35 @@ export const Catalog: React.FC = () => {
     fetchProducts();
   }, [storeId]);
 
-  // Novo useEffect para Realtime (Depuração)
+  // Novo useEffect para Realtime (Depuração e Sincronização em Tempo Real)
   useEffect(() => {
     if (!storeId) return;
 
-    console.log('Iniciando subscrição Realtime para depuração...');
+    console.log('Iniciando subscrição Realtime para sincronização...');
 
     const channel = supabase
-      .channel('any')
+      .channel('catalog_realtime')
       .on('postgres_changes', { 
-        event: 'UPDATE', 
+        event: '*', 
         schema: 'public', 
         table: 'app_settings',
         filter: `key=eq.catalog_settings_${storeId}`
       }, (payload) => {
         console.log('EVENTO REALTIME RECEBIDO:', payload);
-        if (payload.new && payload.new.catalog_open !== undefined) {
-            setCatalogSettings({ isOpen: payload.new.catalog_open ?? true });
+        if (payload.new) {
+            const newRecord = payload.new as any;
+            if (newRecord.catalog_open !== undefined) {
+                setCatalogSettings({ isOpen: newRecord.catalog_open ?? true });
+            }
+            if (newRecord.value) {
+                const val = newRecord.value;
+                setWhatsappNumber(val.whatsapp_number || '');
+                setPixSettings({
+                    key: val.pix_key || '',
+                    bank: val.pix_bank || '',
+                    rule: val.pix_rule || 'valor_real'
+                });
+            }
         }
       })
       .subscribe((status, err) => {
