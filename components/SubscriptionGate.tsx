@@ -258,7 +258,7 @@ export const SubscriptionGate: React.FC = () => {
   // Simular aprovação instantânea se for simulado
   const handleSimulatePaymentApproval = async () => {
     if (!pixCopiado) {
-      setAvisoPix('Por favor, clique em "Copiar" na chave Pix antes de prosseguir com a confirmação.');
+      setAvisoPix('Por favor, clique em "Copiar Chave Pix" antes de enviar o comprovante.');
       addToast('Você precisa copiar a chave Pix antes de continuar.', 'warning');
       return;
     }
@@ -508,10 +508,15 @@ export const SubscriptionGate: React.FC = () => {
                 {!isProduction && (
                   <button 
                     onClick={handleSimulatePaymentApproval}
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-title-md text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/15 cursor-pointer flex items-center justify-center gap-1.5"
+                    disabled={!pixCopiado}
+                    className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition ${
+                      pixCopiado 
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer shadow-md' 
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-75'
+                    }`}
                   >
                     <CheckCircle size={14} />
-                    Simular Confirmação no Gateway
+                    Enviar Comprovante ➔
                   </button>
                 )}
                 <button 

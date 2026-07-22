@@ -244,7 +244,7 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({ isOpen, onCl
 
   const handleSimulatePaymentApproval = async () => {
     if (!pixCopiado) {
-      setAvisoPix('Por favor, clique em "Copiar" na chave Pix antes de prosseguir com a confirmação.');
+      setAvisoPix('Por favor, clique em "Copiar Chave Pix" antes de enviar o comprovante.');
       addToast('Você precisa copiar a chave Pix antes de continuar.', 'warning');
       return;
     }
@@ -444,10 +444,15 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({ isOpen, onCl
                 {!isProduction && (
                   <button 
                     onClick={handleSimulatePaymentApproval}
-                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm cursor-pointer flex items-center justify-center gap-1 mb-1.5"
+                    disabled={!pixCopiado}
+                    className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition ${
+                      pixCopiado 
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer shadow-md' 
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-75'
+                    }`}
                   >
-                    <CheckCircle size={12} />
-                    Simular Confirmação
+                    <CheckCircle size={14} />
+                    Enviar Comprovante ➔
                   </button>
                 )}
                 <button 
