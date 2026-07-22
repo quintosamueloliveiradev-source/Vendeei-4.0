@@ -191,6 +191,50 @@ export const Catalog: React.FC = () => {
     const fullName = `${customerName} ${customerLastName}`.trim();
 
     try {
+      // Pré-validação do cliente no Supabase antes do envio
+      const cleanPhoneDigits = customerPhone.replace(/\D/g, '');
+      const cleanEmailLower = customerEmail.trim().toLowerCase();
+      const cleanCpfDigits = customerCpf.replace(/\D/g, '');
+
+      if (cleanPhoneDigits || cleanEmailLower || cleanCpfDigits) {
+        const { data: existingCustomers } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('user_id', storeId);
+
+        if (existingCustomers && existingCustomers.length > 0) {
+          const matchingCust = existingCustomers.find((c: any) => {
+            const cPhoneDigits = (c.phone || '').replace(/\D/g, '');
+            const cCpfDigits = (c.cpf || '').replace(/\D/g, '');
+            const cEmailLower = (c.email || '').trim().toLowerCase();
+
+            const matchPhone = cleanPhoneDigits.length >= 8 && cPhoneDigits.length >= 8 && cleanPhoneDigits === cPhoneDigits;
+            const matchEmail = cleanEmailLower.length > 0 && cEmailLower.length > 0 && cleanEmailLower === cEmailLower;
+            const matchCpf = cleanCpfDigits.length >= 11 && cCpfDigits.length >= 11 && cleanCpfDigits === cCpfDigits;
+
+            return matchPhone || matchEmail || matchCpf;
+          });
+
+          if (matchingCust) {
+            const norm = (str?: string) => (str || '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const inputNorm = norm(fullName);
+            const dbNameNorm = norm(matchingCust.name);
+            const dbFullNameNorm = norm(`${matchingCust.name || ''} ${matchingCust.last_name || ''}`);
+
+            const isSameName = 
+              inputNorm === dbNameNorm || 
+              inputNorm === dbFullNameNorm ||
+              (inputNorm.length > 2 && dbNameNorm.length > 2 && (inputNorm.includes(dbNameNorm) || dbNameNorm.includes(inputNorm)));
+
+            if (!isSameName) {
+              alert(`Este e-mail ou telefone já está cadastrado para outro cliente (${matchingCust.name.toUpperCase()})!`);
+              setIsSubmitting(false);
+              return null;
+            }
+          }
+        }
+      }
+
       const response = await fetch('/api/catalog/order', {
         method: 'POST',
         headers: {
@@ -225,7 +269,7 @@ export const Catalog: React.FC = () => {
       return newOrderId;
     } catch (err: any) {
       console.error('Erro ao salvar pedido via API:', err);
-      alert('Erro ao processar pedido no servidor.');
+      alert(err.message || 'Erro ao processar pedido no servidor.');
       return null;
     } finally {
       setIsSubmitting(false);

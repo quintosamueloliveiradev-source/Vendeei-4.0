@@ -395,17 +395,29 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
         }
 
         if (existingCust) {
-          const custNameInDb = (existingCust.name || '').trim();
-          if (custNameInDb) {
-            saleCustomerName = custNameInDb.toUpperCase();
+          const norm = (str?: string) => (str || '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const inputNorm = norm(finalCustomerName);
+          const dbNameNorm = norm(existingCust.name);
+          const dbFullNameNorm = norm(`${existingCust.name || ''} ${existingCust.last_name || ''}`);
+
+          const isSameName = 
+            inputNorm === dbNameNorm || 
+            inputNorm === dbFullNameNorm ||
+            (inputNorm.length > 2 && dbNameNorm.length > 2 && (inputNorm.includes(dbNameNorm) || dbNameNorm.includes(inputNorm)));
+
+          if (!isSameName) {
+            console.log(`[Catálogo] Bloqueado: e-mail/telefone/CPF já cadastrado para ${existingCust.name} mas fornecido para ${finalCustomerName}`);
+            return res.status(400).json({
+              message: `Este e-mail ou telefone já está cadastrado para outro cliente (${existingCust.name.toUpperCase()})!`
+            });
           }
+
+          saleCustomerName = (existingCust.name || finalCustomerName).toUpperCase();
 
           console.log(`[Catálogo] Cliente existente identificado (ID: ${existingCust.id}, Nome em banco: ${existingCust.name}). Atualizando dados de contato se fornecidos...`);
           await supabaseClient
             .from('customers')
             .update({
-              name: custNameInDb ? custNameInDb.toUpperCase() : finalCustomerName.toUpperCase(),
-              last_name: existingCust.last_name || customerLastName || undefined,
               phone: cleanPhoneStr || existingCust.phone || undefined,
               cpf: customerCpf || existingCust.cpf || undefined,
               email: customerEmail || existingCust.email || undefined,
