@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
+import { supabase } from '../lib/supabase';
+import { Sale } from '../types';
 import { Clock, CreditCard, Banknote, QrCode, AlertTriangle, X, RotateCcw, Ban, ShieldCheck, ShieldAlert, Key, Info, Calendar, Filter, ChevronRight, FileDown, User, PlusCircle, Printer, Ticket, FileText, Search, Loader2 } from 'lucide-react';
 import { printReceipt } from '../services/receiptService';
 
@@ -72,6 +74,42 @@ export const SalesHistory: React.FC = () => {
     setPassword('');
     setConfirmPassword('');
     setError('');
+  };
+
+  const handleConfirmarPix = async (sale: Sale) => {
+    try {
+      await updateSaleStatus(sale.id, 'completed');
+
+      let phone = '';
+      if (sale.customerName) {
+        const { data: custData } = await supabase
+          .from('customers')
+          .select('phone')
+          .ilike('name', `%${sale.customerName.trim()}%`)
+          .limit(1);
+
+        if (custData && custData.length > 0 && custData[0].phone) {
+          phone = custData[0].phone;
+        }
+      }
+
+      const mensagemSucesso = `✅ Comprovante recebido com sucesso!\n\nMuito obrigado pelo seu pedido! 😊 Seu pagamento foi confirmado e daremos continuidade ao processamento. Agradecemos pela preferência!`;
+
+      if (phone) {
+        let cleanPhone = phone.replace(/\D/g, '');
+        if (cleanPhone.length > 0) {
+          if (!cleanPhone.startsWith('55')) {
+            cleanPhone = `55${cleanPhone}`;
+          }
+          window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(mensagemSucesso)}`, '_blank');
+          return;
+        }
+      }
+
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(mensagemSucesso)}`, '_blank');
+    } catch (err) {
+      console.error("Erro ao confirmar Pix:", err);
+    }
   };
 
   const stats = useMemo(() => {
@@ -238,7 +276,7 @@ export const SalesHistory: React.FC = () => {
                   <div className="flex gap-1.5">
                     {isPending && (
                         <button 
-                          onClick={() => updateSaleStatus(sale.id, 'completed')}
+                          onClick={() => handleConfirmarPix(sale)}
                           className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-sm font-sans font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5"
                         >
                           <ShieldCheck size={14} /> Confirmar Pix
