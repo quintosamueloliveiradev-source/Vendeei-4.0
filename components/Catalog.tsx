@@ -64,12 +64,9 @@ export const Catalog: React.FC = () => {
     setErrorMessages({ cpf: '', phone: '', email: '' });
   };
 
-  const handleVerificarTelefone = async () => {
-    const cleanDigits = customerPhone.replace(/\D/g, '');
-    if (!cleanDigits || cleanDigits.length < 8) {
-      alert("Por favor, digite um número de WhatsApp válido.");
-      return;
-    }
+  const checkCustomerByPhone = async (phoneToVerify: string) => {
+    const cleanDigits = phoneToVerify.replace(/\D/g, '');
+    if (!cleanDigits || cleanDigits.length < 8) return;
 
     setIsCheckingPhone(true);
     try {
@@ -101,6 +98,31 @@ export const Catalog: React.FC = () => {
       setStepCheckout('complete_form');
     } finally {
       setIsCheckingPhone(false);
+    }
+  };
+
+  const handleVerificarTelefone = async () => {
+    const cleanDigits = customerPhone.replace(/\D/g, '');
+    if (!cleanDigits || cleanDigits.length < 8) {
+      alert("Por favor, digite um número de WhatsApp válido.");
+      return;
+    }
+    await checkCustomerByPhone(customerPhone);
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setCustomerPhone(value);
+    if (duplicateErrors.phone) {
+      setDuplicateErrors(prev => ({ ...prev, phone: false }));
+      setErrorMessages(prev => ({ ...prev, phone: '' }));
+    }
+
+    const cleanDigits = value.replace(/\D/g, '');
+    if (cleanDigits.length >= 10) {
+      checkCustomerByPhone(value);
+    } else {
+      setStepCheckout('phone_check');
+      setIsExistingCustomer(false);
     }
   };
 
@@ -601,14 +623,11 @@ export const Catalog: React.FC = () => {
                                         type="tel"
                                         placeholder="(00) 00000-0000"
                                         value={customerPhone}
-                                        onChange={(e) => {
-                                            setCustomerPhone(e.target.value);
-                                            if (stepCheckout !== 'phone_check') {
-                                                setStepCheckout('phone_check');
-                                            }
-                                            if (duplicateErrors.phone) {
-                                                setDuplicateErrors(prev => ({ ...prev, phone: false }));
-                                                setErrorMessages(prev => ({ ...prev, phone: '' }));
+                                        onChange={(e) => handlePhoneChange(e.target.value)}
+                                        onBlur={() => {
+                                            const cleanDigits = customerPhone.replace(/\D/g, '');
+                                            if (cleanDigits.length >= 8 && stepCheckout === 'phone_check' && !isCheckingPhone) {
+                                                checkCustomerByPhone(customerPhone);
                                             }
                                         }}
                                         onKeyDown={(e) => {
