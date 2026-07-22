@@ -870,34 +870,43 @@ export const Catalog: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="space-y-2 pt-2 border-t border-slate-200 text-left">
+                      <div className="space-y-3 pt-2 border-t border-slate-200 text-left">
                         {pixSettings.bank && (
-                          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                            Destinatário: <span className="font-semibold text-slate-700 normal-case">{pixSettings.bank}</span>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              Destinatário
+                            </span>
+                            <span className="text-sm font-semibold text-slate-800">
+                              {pixSettings.bank}
+                            </span>
                           </div>
                         )}
-                        <div>
-                          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Chave Pix</p>
-                          <div className="text-sm font-mono font-bold text-slate-800 break-all select-none bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+
+                        <div className="space-y-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                            Chave Pix
+                          </span>
+                          <div className="text-sm font-mono font-bold text-slate-800 break-all select-none bg-white p-2.5 rounded-xl border border-slate-200 text-center">
                             {pixSettings.key}
                           </div>
+                          
+                          <button
+                            onClick={copiarChavePix}
+                            className="w-full mt-1.5 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-all flex items-center justify-center gap-2 border border-slate-200 active:scale-95 shadow-sm cursor-pointer"
+                          >
+                            {copied ? (
+                              <>
+                                <Check size={14} className="text-emerald-600" />
+                                <span className="text-emerald-600">Chave Copiada!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={14} />
+                                <span>Copiar Chave Pix</span>
+                              </>
+                            )}
+                          </button>
                         </div>
-                        <button
-                          onClick={copiarChavePix}
-                          className="w-full mt-2 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 border border-slate-200 active:scale-95"
-                        >
-                          {copied ? (
-                            <>
-                              <Check size={14} className="text-emerald-600 animate-bounce" />
-                              <span className="text-emerald-600">Chave Copiada!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy size={14} />
-                              <span>Copiar Chave Pix</span>
-                            </>
-                          )}
-                        </button>
                       </div>
                     </div>
 
