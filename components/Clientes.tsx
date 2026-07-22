@@ -33,16 +33,47 @@ export const Clientes: React.FC = () => {
 
       if (error) throw error;
 
+      // Buscar vendas para calcular o Total Gasto real por cliente (apenas concluídas)
+      const { data: salesData } = await supabase
+        .from('sales')
+        .select('customer_name, total, status')
+        .eq('user_id', user.id);
+
       if (data) {
-        setCustomers(data.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          contact: c.phone,
-          cpf: c.cpf,
-          email: c.email,
-          createdAt: new Date(c.created_at).toLocaleDateString('pt-BR'),
-          totalSpent: Number(c.total_spent)
-        })));
+        setCustomers(data.map((c: any) => {
+          let realTotalSpent = 0;
+          if (salesData && salesData.length > 0) {
+            const customerSales = salesData.filter((s: any) => {
+              if (!s.customer_name) return false;
+
+              const custFullName = `${c.name || ''} ${c.last_name || ''}`.trim().toUpperCase();
+              const custFirstName = (c.name || '').trim().toUpperCase();
+              const saleCustName = s.customer_name.trim().toUpperCase();
+
+              const matchesName = 
+                saleCustName === custFullName || 
+                saleCustName === custFirstName ||
+                (custFirstName.length > 2 && saleCustName.includes(custFirstName));
+
+              // Considera APENAS vendas concluídas / completadas (não pendentes e não canceladas)
+              const isCompleted = s.status === 'completed' || s.status === 'concluido' || s.status === 'pago';
+
+              return matchesName && isCompleted;
+            });
+
+            realTotalSpent = customerSales.reduce((acc: number, s: any) => acc + (Number(s.total) || 0), 0);
+          }
+
+          return {
+            id: c.id,
+            name: c.name,
+            contact: c.phone,
+            cpf: c.cpf,
+            email: c.email,
+            createdAt: new Date(c.created_at).toLocaleDateString('pt-BR'),
+            totalSpent: realTotalSpent
+          };
+        }));
       }
     } catch (error) {
       console.error('Erro ao buscar clientes:', error);

@@ -386,6 +386,9 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
           existingCust = byEmail;
         }
 
+        const isOrderCompleted = paymentMethod !== 'pix';
+        const initialSpentToAdd = isOrderCompleted ? finalTotalWithCents : 0;
+
         if (existingCust) {
           const currentSpent = Number(existingCust.total_spent) || 0;
           await supabaseClient
@@ -396,7 +399,7 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
               phone: customerPhone || undefined,
               cpf: customerCpf || undefined,
               email: customerEmail || undefined,
-              total_spent: currentSpent + finalTotalWithCents
+              total_spent: currentSpent + initialSpentToAdd
             })
             .eq('id', existingCust.id);
         } else {
@@ -409,7 +412,7 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
               phone: customerPhone || '',
               cpf: customerCpf || '',
               email: customerEmail || '',
-              total_spent: finalTotalWithCents
+              total_spent: initialSpentToAdd
             }]);
         }
       } catch (custErr) {
