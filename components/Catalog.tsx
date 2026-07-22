@@ -503,7 +503,7 @@ export const Catalog: React.FC = () => {
       `*Total:* R$ ${finalTotalWithCents.toFixed(2)}\n` +
       `*Forma de Pagamento:* ${paymentStr}`;
 
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
     
     if (paymentMethod === 'pix') {
       pixFoiCopiadoRef.current = false;
@@ -538,7 +538,7 @@ export const Catalog: React.FC = () => {
       `*Valor à Pagar:* R$ ${finalTotalWithCents.toFixed(2)}\n\n` +
       `Envie o comprovante antes das *${formattedExpirationTime}* para evitar cancelamento automático do seu pedido.`;
       
-    window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(proofMessage)}`, '_blank');
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(proofMessage)}`, '_blank');
     
     // Finaliza o fluxo
     setCart([]);

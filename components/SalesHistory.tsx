@@ -101,12 +101,12 @@ export const SalesHistory: React.FC = () => {
           if (!cleanPhone.startsWith('55')) {
             cleanPhone = `55${cleanPhone}`;
           }
-          window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(mensagemSucesso)}`, '_blank');
+          window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(mensagemSucesso)}`, '_blank');
           return;
         }
       }
 
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(mensagemSucesso)}`, '_blank');
+      window.open(`https://wa.me/?text=${encodeURIComponent(mensagemSucesso)}`, '_blank');
     } catch (err) {
       console.error("Erro ao confirmar Pix:", err);
     }
