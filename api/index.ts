@@ -386,6 +386,16 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
           existingCust = byEmail;
         }
 
+        if (!existingCust && customerCpf) {
+          const { data: byCpf } = await supabaseClient
+            .from('customers')
+            .select('id, total_spent')
+            .eq('user_id', storeId)
+            .eq('cpf', customerCpf)
+            .maybeSingle();
+          existingCust = byCpf;
+        }
+
         const isOrderCompleted = paymentMethod !== 'pix';
         const initialSpentToAdd = isOrderCompleted ? finalTotalWithCents : 0;
 

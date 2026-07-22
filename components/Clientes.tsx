@@ -90,15 +90,53 @@ export const Clientes: React.FC = () => {
     if (loading || !user) return;
 
     try {
+      const cleanName = name.toUpperCase().trim();
+      const cleanContact = contact.trim();
+      const cleanCpf = cpf.trim();
+      const cleanEmail = email.trim();
+
+      // Check for duplicate CPF, Phone, or Email for this store owner
+      let query = supabase
+        .from('customers')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (editingCustomerId) {
+        query = query.neq('id', editingCustomerId);
+      }
+
+      const { data: existingCustomers, error: checkError } = await query;
+
+      if (checkError) {
+        console.error('Erro ao verificar duplicidade de cliente:', checkError);
+      } else if (existingCustomers && existingCustomers.length > 0) {
+        const duplicate = existingCustomers.find((c: any) => {
+          const matchCpf = cleanCpf && c.cpf && c.cpf.trim() === cleanCpf;
+          const matchPhone = cleanContact && c.phone && c.phone.trim() === cleanContact;
+          const matchEmail = cleanEmail && c.email && c.email.trim().toLowerCase() === cleanEmail.toLowerCase();
+          return matchCpf || matchPhone || matchEmail;
+        });
+
+        if (duplicate) {
+          let campoDuplicado = '';
+          if (cleanCpf && duplicate.cpf && duplicate.cpf.trim() === cleanCpf) campoDuplicado = 'CPF';
+          else if (cleanContact && duplicate.phone && duplicate.phone.trim() === cleanContact) campoDuplicado = 'Telefone/WhatsApp';
+          else if (cleanEmail && duplicate.email && duplicate.email.trim().toLowerCase() === cleanEmail.toLowerCase()) campoDuplicado = 'E-mail';
+
+          alert(`Erro: Já existe um cliente cadastrado com este ${campoDuplicado} (${duplicate.name}).`);
+          return;
+        }
+      }
+
       if (editingCustomerId) {
         // Update
         const { error } = await supabase
           .from('customers')
           .update({
-            name: name.toUpperCase().trim(),
-            phone: contact,
-            cpf,
-            email: email.trim()
+            name: cleanName,
+            phone: cleanContact,
+            cpf: cleanCpf,
+            email: cleanEmail
           })
           .eq('id', editingCustomerId);
         
@@ -109,10 +147,10 @@ export const Clientes: React.FC = () => {
           .from('customers')
           .insert([{
             user_id: user.id,
-            name: name.toUpperCase().trim(),
-            phone: contact,
-            cpf,
-            email: email.trim()
+            name: cleanName,
+            phone: cleanContact,
+            cpf: cleanCpf,
+            email: cleanEmail
           }]);
 
         if (error) throw error;
