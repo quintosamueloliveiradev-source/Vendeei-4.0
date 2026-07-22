@@ -362,67 +362,61 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
     const constructedName = `${customerName || ''} ${customerLastName || ''}`.trim();
     const finalCustomerName = constructedName || name || 'Cliente do Catálogo';
 
-    // 0. Salvar ou atualizar cliente na tabela 'customers'
+    // 0. Salvar ou atualizar cliente na tabela 'customers' (Prevenção de Duplicidade)
     if (storeId) {
       try {
-        let existingCust = null;
-        if (customerPhone) {
-          const { data: byPhone } = await supabaseClient
-            .from('customers')
-            .select('id, total_spent')
-            .eq('user_id', storeId)
-            .eq('phone', customerPhone)
-            .maybeSingle();
-          existingCust = byPhone;
-        }
+        const cleanDigits = (str?: string) => (str || '').replace(/\D/g, '');
+        const cleanEmailStr = (customerEmail || '').trim().toLowerCase();
+        const cleanPhoneStr = (customerPhone || '').trim();
+        const cleanPhoneDigits = cleanDigits(customerPhone);
+        const cleanCpfDigits = cleanDigits(customerCpf);
 
-        if (!existingCust && customerEmail) {
-          const { data: byEmail } = await supabaseClient
-            .from('customers')
-            .select('id, total_spent')
-            .eq('user_id', storeId)
-            .eq('email', customerEmail)
-            .maybeSingle();
-          existingCust = byEmail;
-        }
+        // Buscar todos os clientes existentes do lojista
+        const { data: existingStoreCustomers } = await supabaseClient
+          .from('customers')
+          .select('*')
+          .eq('user_id', storeId);
 
-        if (!existingCust && customerCpf) {
-          const { data: byCpf } = await supabaseClient
-            .from('customers')
-            .select('id, total_spent')
-            .eq('user_id', storeId)
-            .eq('cpf', customerCpf)
-            .maybeSingle();
-          existingCust = byCpf;
-        }
+        let existingCust: any = null;
 
-        const isOrderCompleted = paymentMethod !== 'pix';
-        const initialSpentToAdd = isOrderCompleted ? finalTotalWithCents : 0;
+        if (existingStoreCustomers && existingStoreCustomers.length > 0) {
+          existingCust = existingStoreCustomers.find((c: any) => {
+            const cPhoneDigits = cleanDigits(c.phone);
+            const cCpfDigits = cleanDigits(c.cpf);
+            const cEmailLower = (c.email || '').trim().toLowerCase();
+
+            const matchPhone = cleanPhoneDigits.length >= 8 && cPhoneDigits.length >= 8 && cleanPhoneDigits === cPhoneDigits;
+            const matchEmail = cleanEmailStr.length > 0 && cEmailLower.length > 0 && cleanEmailStr === cEmailLower;
+            const matchCpf = cleanCpfDigits.length >= 11 && cCpfDigits.length >= 11 && cleanCpfDigits === cCpfDigits;
+
+            return matchPhone || matchEmail || matchCpf;
+          });
+        }
 
         if (existingCust) {
-          const currentSpent = Number(existingCust.total_spent) || 0;
+          console.log(`[Catálogo] Cliente existente identificado (ID: ${existingCust.id}, Nome anterior: ${existingCust.name}). Atualizando registro...`);
           await supabaseClient
             .from('customers')
             .update({
               name: finalCustomerName.toUpperCase(),
               last_name: customerLastName || undefined,
-              phone: customerPhone || undefined,
+              phone: cleanPhoneStr || undefined,
               cpf: customerCpf || undefined,
               email: customerEmail || undefined,
-              total_spent: currentSpent + initialSpentToAdd
             })
             .eq('id', existingCust.id);
         } else {
+          console.log(`[Catálogo] Novo cliente identificado. Cadastrando na tabela customers...`);
           await supabaseClient
             .from('customers')
             .insert([{
               user_id: storeId,
               name: finalCustomerName.toUpperCase(),
               last_name: customerLastName || '',
-              phone: customerPhone || '',
+              phone: cleanPhoneStr || '',
               cpf: customerCpf || '',
               email: customerEmail || '',
-              total_spent: initialSpentToAdd
+              total_spent: 0
             }]);
         }
       } catch (custErr) {

@@ -5,7 +5,7 @@ import { Customer } from '../types';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (name: string, contact: string, cpf: string, email: string) => Promise<void>;
+  onSave: (name: string, contact: string, cpf: string, email: string) => Promise<boolean | void>;
   editingCustomer?: Customer | null;
 }
 
@@ -14,6 +14,7 @@ export const CustomerFormModal: React.FC<Props> = ({ isOpen, onClose, onSave, ed
   const [contact, setContact] = useState('');
   const [cpf, setCpf] = useState('');
   const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (editingCustomer) {
@@ -45,7 +46,17 @@ export const CustomerFormModal: React.FC<Props> = ({ isOpen, onClose, onSave, ed
         <h3 className="text-lg font-bold text-slate-900 mb-6">{editingCustomer ? 'Editar Cliente' : 'Novo Cliente'}</h3>
         <form onSubmit={async (e) => {
           e.preventDefault();
-          await onSave(name, contact, cpf, email);
+          setIsSubmitting(true);
+          try {
+            const success = await onSave(name, contact, cpf, email);
+            if (success !== false) {
+              onClose();
+            }
+          } catch (err) {
+            console.error('Erro ao submeter formulário:', err);
+          } finally {
+            setIsSubmitting(false);
+          }
         }} className="space-y-4">
           <div className="space-y-1">
             <label className="text-[11px] text-slate-600 uppercase tracking-wider flex items-center gap-1.5 font-semibold">
@@ -83,10 +94,9 @@ export const CustomerFormModal: React.FC<Props> = ({ isOpen, onClose, onSave, ed
             </label>
             <div className="relative">
               <input 
-                required
                 value={cpf}
                 onChange={(e) => setCpf(e.target.value)}
-                placeholder="Ex: 000.000.000-00"
+                placeholder="Ex: 000.000.000-00 (Opcional)"
                 className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 font-medium focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 focus:outline-none transition-all placeholder:text-slate-400 text-sm"
               />
               <CreditCard size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -111,15 +121,17 @@ export const CustomerFormModal: React.FC<Props> = ({ isOpen, onClose, onSave, ed
             <button 
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50"
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
             >
               Cancelar
             </button>
             <button 
               type="submit"
-              className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700"
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
             >
-              Salvar Cliente
+              {isSubmitting ? 'Salvando...' : 'Salvar Cliente'}
             </button>
           </div>
         </form>

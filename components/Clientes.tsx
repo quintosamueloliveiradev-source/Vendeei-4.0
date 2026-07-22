@@ -33,7 +33,7 @@ export const Clientes: React.FC = () => {
 
       if (error) throw error;
 
-      // Buscar vendas para calcular o Total Gasto real por cliente (apenas concluídas)
+      // Buscar vendas para calcular o Total Gasto real por cliente (apenas concluídas/pagas)
       const { data: salesData } = await supabase
         .from('sales')
         .select('customer_name, total, status')
@@ -53,9 +53,11 @@ export const Clientes: React.FC = () => {
               const matchesName = 
                 saleCustName === custFullName || 
                 saleCustName === custFirstName ||
-                (custFirstName.length > 2 && saleCustName.includes(custFirstName));
+                (custFirstName.length > 2 && saleCustName.includes(custFirstName)) ||
+                (custFullName.length > 2 && custFullName.includes(saleCustName));
 
-              // Considera APENAS vendas concluídas / completadas (não pendentes e não canceladas)
+              // Considera APENAS vendas concluídas / completadas / pagas
+              // Exclui 'awaiting_payment', 'pending', 'canceled', etc.
               const isCompleted = s.status === 'completed' || s.status === 'concluido' || s.status === 'pago';
 
               return matchesName && isCompleted;
@@ -70,7 +72,7 @@ export const Clientes: React.FC = () => {
             contact: c.phone,
             cpf: c.cpf,
             email: c.email,
-            createdAt: new Date(c.created_at).toLocaleDateString('pt-BR'),
+            createdAt: c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : '-',
             totalSpent: realTotalSpent
           };
         }));
@@ -83,19 +85,50 @@ export const Clientes: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchCustomers();
-  }, [user]);
+    if (!user?.id) return;
 
-  const handleSaveCustomer = async (name: string, contact: string, cpf: string, email: string) => {
-    if (loading || !user) return;
+    fetchCustomers();
+
+    // Inscrição Realtime para atualizar o Total Gasto instantaneamente se vendas forem pagas/canceladas
+    const channel = supabase
+      .channel(`clientes_realtime_${user.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'sales',
+        filter: `user_id=eq.${user.id}`
+      }, () => {
+        console.log('[Realtime] Alteração em vendas detectada. Atualizando faturamento dos clientes...');
+        fetchCustomers();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'customers',
+        filter: `user_id=eq.${user.id}`
+      }, () => {
+        console.log('[Realtime] Alteração em clientes detectada. Atualizando lista de clientes...');
+        fetchCustomers();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
+  const handleSaveCustomer = async (name: string, contact: string, cpf: string, email: string): Promise<boolean> => {
+    if (loading || !user) return false;
 
     try {
       const cleanName = name.toUpperCase().trim();
       const cleanContact = contact.trim();
+      const cleanContactDigits = contact.replace(/\D/g, '');
       const cleanCpf = cpf.trim();
-      const cleanEmail = email.trim();
+      const cleanCpfDigits = cpf.replace(/\D/g, '');
+      const cleanEmail = email.trim().toLowerCase();
 
-      // Check for duplicate CPF, Phone, or Email for this store owner
+      // Buscar todos os clientes do lojista para verificar duplicidade por CPF, Telefone ou E-mail
       let query = supabase
         .from('customers')
         .select('*')
@@ -110,21 +143,28 @@ export const Clientes: React.FC = () => {
       if (checkError) {
         console.error('Erro ao verificar duplicidade de cliente:', checkError);
       } else if (existingCustomers && existingCustomers.length > 0) {
+        let duplicateField = '';
+        let duplicateName = '';
+
         const duplicate = existingCustomers.find((c: any) => {
-          const matchCpf = cleanCpf && c.cpf && c.cpf.trim() === cleanCpf;
-          const matchPhone = cleanContact && c.phone && c.phone.trim() === cleanContact;
-          const matchEmail = cleanEmail && c.email && c.email.trim().toLowerCase() === cleanEmail.toLowerCase();
-          return matchCpf || matchPhone || matchEmail;
+          const cPhoneDigits = (c.phone || '').replace(/\D/g, '');
+          const cCpfDigits = (c.cpf || '').replace(/\D/g, '');
+          const cEmailLower = (c.email || '').trim().toLowerCase();
+
+          const matchPhone = cleanContactDigits.length >= 8 && cPhoneDigits.length >= 8 && cleanContactDigits === cPhoneDigits;
+          const matchCpf = cleanCpfDigits.length >= 11 && cCpfDigits.length >= 11 && cleanCpfDigits === cCpfDigits;
+          const matchEmail = cleanEmail.length > 0 && cEmailLower.length > 0 && cleanEmail === cEmailLower;
+
+          if (matchCpf) { duplicateField = 'CPF'; duplicateName = c.name; return true; }
+          if (matchPhone) { duplicateField = 'Telefone/WhatsApp'; duplicateName = c.name; return true; }
+          if (matchEmail) { duplicateField = 'E-mail'; duplicateName = c.name; return true; }
+
+          return false;
         });
 
         if (duplicate) {
-          let campoDuplicado = '';
-          if (cleanCpf && duplicate.cpf && duplicate.cpf.trim() === cleanCpf) campoDuplicado = 'CPF';
-          else if (cleanContact && duplicate.phone && duplicate.phone.trim() === cleanContact) campoDuplicado = 'Telefone/WhatsApp';
-          else if (cleanEmail && duplicate.email && duplicate.email.trim().toLowerCase() === cleanEmail.toLowerCase()) campoDuplicado = 'E-mail';
-
-          alert(`Erro: Já existe um cliente cadastrado com este ${campoDuplicado} (${duplicate.name}).`);
-          return;
+          alert(`Erro: Já existe um cliente cadastrado com este ${duplicateField} (${duplicateName}).`);
+          return false;
         }
       }
 
@@ -150,7 +190,8 @@ export const Clientes: React.FC = () => {
             name: cleanName,
             phone: cleanContact,
             cpf: cleanCpf,
-            email: cleanEmail
+            email: cleanEmail,
+            total_spent: 0
           }]);
 
         if (error) throw error;
@@ -161,10 +202,12 @@ export const Clientes: React.FC = () => {
       setName('');
       setContact('');
       setCpf('');
-      await fetchCustomers(); // Ensure it updates after fetch
+      await fetchCustomers(); // Garantir sincronização
+      return true;
     } catch (error: any) {
       console.error('Erro ao salvar cliente:', error);
       alert("Erro ao salvar cliente: " + (error.message || JSON.stringify(error)));
+      return false;
     }
   };
 
