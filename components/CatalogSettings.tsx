@@ -218,7 +218,7 @@ export const CatalogSettings: React.FC = () => {
             />
           </div>
           <div className="space-y-2">
-            <label className="block text-xs font-semibold text-slate-500 uppercase">Banco / Nome</label>
+            <label className="block text-xs font-semibold text-slate-500 uppercase">Destinatário</label>
             <input 
                 value={pixBank} 
                 onChange={e => setPixBank(e.target.value)}
