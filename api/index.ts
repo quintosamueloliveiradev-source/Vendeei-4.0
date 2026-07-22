@@ -408,22 +408,22 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
             (inputNorm.length > 2 && dbNameNorm.length > 2 && (inputNorm.includes(dbNameNorm) || dbNameNorm.includes(inputNorm)));
 
           if (!isSameName) {
-            let campoConflito = "Dados de contato";
             const cPhoneDigits = cleanDigits(existingCust.phone);
             const cCpfDigits = cleanDigits(existingCust.cpf);
             const cEmailLower = (existingCust.email || '').trim().toLowerCase();
 
+            let mensAviso = "Dados de contato já cadastrados em nossa base.";
             if (cleanPhoneDigits.length >= 8 && cPhoneDigits === cleanPhoneDigits) {
-              campoConflito = "Telefone/WhatsApp";
+              mensAviso = "Este WhatsApp/Telefone já está cadastrado em nossa base.";
             } else if (cleanEmailStr.length > 0 && cEmailLower === cleanEmailStr) {
-              campoConflito = "E-mail";
+              mensAviso = "Este E-mail já está sendo utilizado por outro cliente.";
             } else if (cleanCpfDigits.length >= 11 && cCpfDigits === cleanCpfDigits) {
-              campoConflito = "CPF";
+              mensAviso = "Este CPF já está cadastrado no sistema.";
             }
 
-            console.log(`[Catálogo] Bloqueado: ${campoConflito} já cadastrado para ${existingCust.name} mas fornecido para ${finalCustomerName}`);
+            console.log(`[Catálogo] Bloqueado: ${mensAviso} para ${finalCustomerName}`);
             return res.status(400).json({
-              message: `Atenção: Este ${campoConflito} já está cadastrado para o cliente "${existingCust.name.toUpperCase()}". Utilize seus próprios dados para prosseguir com a compra.`
+              message: mensAviso
             });
           }
 

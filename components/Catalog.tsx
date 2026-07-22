@@ -272,9 +272,16 @@ export const Catalog: React.FC = () => {
 
   const saveOrder = async () => {
     if (!storeId || cart.length === 0) return null;
+
+    if (!customerName.trim() || !customerPhone.trim() || !customerEmail.trim()) {
+      setAvisoTelefone('Por favor, preencha todos os campos obrigatórios (*).');
+      return null;
+    }
+
     setIsSubmitting(true);
     setDuplicateErrors({ cpf: false, phone: false, email: false });
     setErrorMessages({ cpf: '', phone: '', email: '' });
+    setAvisoTelefone('');
 
     const fullName = `${customerName} ${customerLastName}`.trim();
 
@@ -322,19 +329,23 @@ export const Catalog: React.FC = () => {
               const cCpfDigits = (matchingCust.cpf || '').replace(/\D/g, '');
               const cEmailLower = (matchingCust.email || '').trim().toLowerCase();
 
+              let avisoMsg = '';
+
               if (cleanPhoneDigits.length >= 8 && cPhoneDigits === cleanPhoneDigits) {
                 newDupErrors.phone = true;
-                newErrorMsgs.phone = `Este número já pertence a ${matchingCust.name.toUpperCase()}`;
-              }
-              if (cleanEmailLower.length > 0 && cEmailLower === cleanEmailLower) {
+                newErrorMsgs.phone = `Este WhatsApp/Telefone já está cadastrado em nossa base.`;
+                avisoMsg = 'Este WhatsApp/Telefone já está cadastrado em nossa base.';
+              } else if (cleanEmailLower.length > 0 && cEmailLower === cleanEmailLower) {
                 newDupErrors.email = true;
-                newErrorMsgs.email = `Este e-mail já pertence a ${matchingCust.name.toUpperCase()}`;
-              }
-              if (cleanCpfDigits.length >= 11 && cCpfDigits === cleanCpfDigits) {
+                newErrorMsgs.email = `Este E-mail já está sendo utilizado por outro cliente.`;
+                avisoMsg = 'Este E-mail já está sendo utilizado por outro cliente.';
+              } else if (cleanCpfDigits.length >= 11 && cCpfDigits === cleanCpfDigits) {
                 newDupErrors.cpf = true;
-                newErrorMsgs.cpf = `Este CPF já pertence a ${matchingCust.name.toUpperCase()}`;
+                newErrorMsgs.cpf = `Este CPF já está cadastrado no sistema.`;
+                avisoMsg = 'Este CPF já está cadastrado no sistema.';
               }
 
+              setAvisoTelefone(avisoMsg);
               setDuplicateErrors(newDupErrors);
               setErrorMessages(newErrorMsgs);
               setIsSubmitting(false);
@@ -379,6 +390,7 @@ export const Catalog: React.FC = () => {
     } catch (err: any) {
       console.error('Erro ao salvar pedido via API:', err);
       const msg = err.message || '';
+      setAvisoTelefone(msg || 'Erro ao processar pedido no servidor.');
       if (msg.includes('Telefone') || msg.includes('WhatsApp') || msg.includes('E-mail') || msg.includes('CPF')) {
         const newDup = { cpf: false, phone: false, email: false };
         const newMsgs = { cpf: '', phone: '', email: '' };
@@ -396,8 +408,6 @@ export const Catalog: React.FC = () => {
         }
         setDuplicateErrors(newDup);
         setErrorMessages(newMsgs);
-      } else {
-        alert(msg || 'Erro ao processar pedido no servidor.');
       }
       return null;
     } finally {
@@ -707,7 +717,7 @@ export const Catalog: React.FC = () => {
                                             type="text"
                                             placeholder="Nome *"
                                             value={customerName}
-                                            onChange={(e) => setCustomerName(e.target.value)}
+                                            onChange={(e) => { setCustomerName(e.target.value); if (avisoTelefone) setAvisoTelefone(''); }}
                                             required
                                             className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-500"
                                         />
@@ -715,7 +725,7 @@ export const Catalog: React.FC = () => {
                                             type="text"
                                             placeholder="Sobrenome"
                                             value={customerLastName}
-                                            onChange={(e) => setCustomerLastName(e.target.value)}
+                                            onChange={(e) => { setCustomerLastName(e.target.value); if (avisoTelefone) setAvisoTelefone(''); }}
                                             className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-500"
                                         />
                                     </div>
