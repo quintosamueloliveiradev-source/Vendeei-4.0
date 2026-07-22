@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   CheckCircle, 
@@ -109,6 +109,7 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({ isOpen, onCl
   const [isSimulated, setIsSimulated] = useState(false);
   const [copied, setCopied] = useState(false);
   const [pixCopiado, setPixCopiado] = useState(false);
+  const pixFoiCopiadoRef = useRef(false);
   const [avisoPix, setAvisoPix] = useState('');
   const [pollingActive, setPollingActive] = useState(false);
   const [pollingErrorCount, setPollingErrorCount] = useState(0);
@@ -235,6 +236,7 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({ isOpen, onCl
   const handleCopyCode = () => {
     if (!copiaCola) return;
     navigator.clipboard.writeText(copiaCola);
+    pixFoiCopiadoRef.current = true;
     setCopied(true);
     setPixCopiado(true);
     setAvisoPix('');
@@ -243,7 +245,7 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({ isOpen, onCl
   };
 
   const handleSimulatePaymentApproval = async () => {
-    if (!pixCopiado) {
+    if (!pixFoiCopiadoRef.current && !pixCopiado) {
       setAvisoPix('Atenção: Você precisa clicar em "Copiar Chave Pix" antes de enviar o comprovante.');
       addToast('Você precisa copiar a chave Pix antes de continuar.', 'warning');
       return;
@@ -443,8 +445,9 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({ isOpen, onCl
               <div className="space-y-1.5 pt-2 border-t border-slate-100">
                 <button 
                   onClick={handleSimulatePaymentApproval}
+                  disabled={!pixFoiCopiadoRef.current && !pixCopiado}
                   className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 ${
-                    pixCopiado 
+                    (pixFoiCopiadoRef.current || pixCopiado) 
                       ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg cursor-pointer transform active:scale-98' 
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60 border border-gray-300'
                   }`}

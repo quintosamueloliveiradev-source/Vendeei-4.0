@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, ShoppingBag, Plus, Minus, X, Trash2, ChevronRight, Store, QrCode, Copy, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -53,6 +53,7 @@ export const Catalog: React.FC = () => {
   const [avisoTelefone, setAvisoTelefone] = useState('');
   const [copied, setCopied] = useState(false);
   const [pixCopiado, setPixCopiado] = useState(false);
+  const pixFoiCopiadoRef = useRef(false);
   const [avisoPix, setAvisoPix] = useState('');
 
   const resetCustomerForm = () => {
@@ -65,6 +66,7 @@ export const Catalog: React.FC = () => {
     setIsExistingCustomer(false);
     setAvisoTelefone('');
     setPixCopiado(false);
+    pixFoiCopiadoRef.current = false;
     setAvisoPix('');
     setDuplicateErrors({ cpf: false, phone: false, email: false });
     setErrorMessages({ cpf: '', phone: '', email: '' });
@@ -152,6 +154,7 @@ export const Catalog: React.FC = () => {
   const copiarChavePix = () => {
     if (!pixSettings.key) return;
     navigator.clipboard.writeText(pixSettings.key);
+    pixFoiCopiadoRef.current = true;
     setCopied(true);
     setPixCopiado(true);
     setAvisoPix('');
@@ -503,6 +506,7 @@ export const Catalog: React.FC = () => {
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
     
     if (paymentMethod === 'pix') {
+      pixFoiCopiadoRef.current = false;
       setPixCopiado(false);
       setAvisoPix('');
       setCheckoutStep('pix_instructions');
@@ -518,7 +522,7 @@ export const Catalog: React.FC = () => {
   };
 
   const sendPixProof = () => {
-    if (!pixCopiado) {
+    if (!pixFoiCopiadoRef.current && !pixCopiado) {
       setAvisoPix('Atenção: Você precisa clicar em "Copiar Chave Pix" antes de enviar o comprovante.');
       return;
     }
@@ -900,9 +904,9 @@ export const Catalog: React.FC = () => {
 
                       <button 
                         onClick={sendPixProof}
-                        disabled={!pixCopiado}
+                        disabled={!pixFoiCopiadoRef.current && !pixCopiado}
                         className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all duration-200 ${
-                          pixCopiado 
+                          (pixFoiCopiadoRef.current || pixCopiado) 
                             ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-200 cursor-pointer transform active:scale-98' 
                             : 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60 border border-gray-300'
                         }`}
