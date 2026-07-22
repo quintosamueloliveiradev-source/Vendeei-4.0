@@ -532,7 +532,7 @@ export const Catalog: React.FC = () => {
     const formattedExpirationTime = expiryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const fullName = `${customerName} ${customerLastName}`.trim();
 
-    const proofMessage = `✅ *AGUARDANDO COMPROVANTE*\n` +
+    const proofMessage = `\u2705 *AGUARDANDO COMPROVANTE*\n` +
       `*Pedido:* #${orderId}\n` +
       `*Cliente:* ${fullName}\n` +
       `*Valor à Pagar:* R$ ${finalTotalWithCents.toFixed(2)}\n\n` +

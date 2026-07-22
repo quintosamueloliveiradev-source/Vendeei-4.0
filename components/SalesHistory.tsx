@@ -93,7 +93,7 @@ export const SalesHistory: React.FC = () => {
         }
       }
 
-      const mensagemSucesso = `✅ *COMPROVANTE RECEBIDO COM SUCESSO!*\n\nMuito obrigado pelo seu pedido! 😊 Seu pagamento foi confirmado e daremos continuidade ao processamento. Agradecemos pela preferência!`;
+      const mensagemSucesso = `*\u2705 COMPROVANTE RECEBIDO COM SUCESSO!*\n\nMuito obrigado pelo seu pedido! \uD83D\uDE0A Seu pagamento foi confirmado e daremos continuidade ao processamento. Agradecemos pela preferência!`;
 
       if (phone) {
         let cleanPhone = phone.replace(/\D/g, '');
