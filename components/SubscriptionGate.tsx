@@ -505,20 +505,17 @@ export const SubscriptionGate: React.FC = () => {
               </div>
 
               <div className="space-y-2 pt-2 border-t border-slate-100">
-                {!isProduction && (
-                  <button 
-                    onClick={handleSimulatePaymentApproval}
-                    disabled={!pixCopiado}
-                    className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 ${
-                      pixCopiado 
-                        ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg cursor-pointer transform active:scale-98' 
-                        : 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60 border border-gray-300'
-                    }`}
-                  >
-                    <span>Enviar Comprovante</span>
-                    <span>➔</span>
-                  </button>
-                )}
+                <button 
+                  onClick={handleSimulatePaymentApproval}
+                  className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 ${
+                    pixCopiado 
+                      ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg cursor-pointer transform active:scale-98' 
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60 border border-gray-300'
+                  }`}
+                >
+                  <span>Enviar Comprovante</span>
+                  <span>➔</span>
+                </button>
                 <button 
                   onClick={() => {
                     setPollingActive(false);
