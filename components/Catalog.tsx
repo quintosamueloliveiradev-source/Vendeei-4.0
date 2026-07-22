@@ -227,7 +227,20 @@ export const Catalog: React.FC = () => {
               (inputNorm.length > 2 && dbNameNorm.length > 2 && (inputNorm.includes(dbNameNorm) || dbNameNorm.includes(inputNorm)));
 
             if (!isSameName) {
-              alert(`Este e-mail ou telefone já está cadastrado para outro cliente (${matchingCust.name.toUpperCase()})!`);
+              let campoConflito = "Dados de contato";
+              const cPhoneDigits = (matchingCust.phone || '').replace(/\D/g, '');
+              const cCpfDigits = (matchingCust.cpf || '').replace(/\D/g, '');
+              const cEmailLower = (matchingCust.email || '').trim().toLowerCase();
+
+              if (cleanPhoneDigits.length >= 8 && cPhoneDigits === cleanPhoneDigits) {
+                campoConflito = "Telefone/WhatsApp";
+              } else if (cleanEmailLower.length > 0 && cEmailLower === cleanEmailLower) {
+                campoConflito = "E-mail";
+              } else if (cleanCpfDigits.length >= 11 && cCpfDigits === cleanCpfDigits) {
+                campoConflito = "CPF";
+              }
+
+              alert(`Atenção: Este ${campoConflito} já está cadastrado para o cliente "${matchingCust.name.toUpperCase()}". Utilize seus próprios dados para prosseguir com a compra.`);
               setIsSubmitting(false);
               return null;
             }
