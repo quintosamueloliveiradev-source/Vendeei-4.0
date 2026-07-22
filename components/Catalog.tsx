@@ -50,6 +50,7 @@ export const Catalog: React.FC = () => {
   const [stepCheckout, setStepCheckout] = useState<'phone_check' | 'complete_form' | 'ready_to_buy'>('phone_check');
   const [isExistingCustomer, setIsExistingCustomer] = useState(false);
   const [isCheckingPhone, setIsCheckingPhone] = useState(false);
+  const [avisoTelefone, setAvisoTelefone] = useState('');
   const [copied, setCopied] = useState(false);
 
   const resetCustomerForm = () => {
@@ -60,6 +61,7 @@ export const Catalog: React.FC = () => {
     setCustomerEmail('');
     setStepCheckout('phone_check');
     setIsExistingCustomer(false);
+    setAvisoTelefone('');
     setDuplicateErrors({ cpf: false, phone: false, email: false });
     setErrorMessages({ cpf: '', phone: '', email: '' });
   };
@@ -104,15 +106,18 @@ export const Catalog: React.FC = () => {
   const handleVerificarTelefone = async () => {
     const cleanDigits = customerPhone.replace(/\D/g, '');
     if (cleanDigits.length < 11) {
-      alert("Por favor, digite o WhatsApp completo com DDD e 9º dígito (11 números).");
+      setAvisoTelefone("Por favor, informe o WhatsApp completo com DDD e 9 dígitos.");
       return;
     }
+    setAvisoTelefone('');
     await checkCustomerByPhone(customerPhone);
   };
 
   const handlePhoneChange = (value: string) => {
     const cleanDigits = value.replace(/\D/g, '');
     if (cleanDigits.length > 11) return;
+
+    if (avisoTelefone) setAvisoTelefone('');
 
     setCustomerPhone(value);
     if (duplicateErrors.phone) {
@@ -659,6 +664,12 @@ export const Catalog: React.FC = () => {
                                     )}
                                 </div>
                                 <span className="text-xs text-gray-500 mt-1 block">Informe o DDD e o número com 9 dígitos.</span>
+                                {avisoTelefone && (
+                                    <div className="flex items-center gap-1.5 text-amber-700 text-xs mt-1.5 bg-amber-50 p-2 rounded-lg border border-amber-200 font-medium animate-fade-in">
+                                        <span>⚠️</span>
+                                        <span>{avisoTelefone}</span>
+                                    </div>
+                                )}
                                 {duplicateErrors.phone && (
                                     <p className="text-xs text-red-600 font-semibold mt-1 px-1 flex items-center gap-1">
                                         ⚠️ {errorMessages.phone}
