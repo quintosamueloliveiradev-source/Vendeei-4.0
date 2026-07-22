@@ -361,6 +361,7 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
 
     const constructedName = `${customerName || ''} ${customerLastName || ''}`.trim();
     const finalCustomerName = constructedName || name || 'Cliente do Catálogo';
+    let saleCustomerName = finalCustomerName.toUpperCase();
 
     // 0. Salvar ou atualizar cliente na tabela 'customers' (Prevenção de Duplicidade)
     if (storeId) {
@@ -394,15 +395,20 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
         }
 
         if (existingCust) {
-          console.log(`[Catálogo] Cliente existente identificado (ID: ${existingCust.id}, Nome anterior: ${existingCust.name}). Atualizando registro...`);
+          const custNameInDb = (existingCust.name || '').trim();
+          if (custNameInDb) {
+            saleCustomerName = custNameInDb.toUpperCase();
+          }
+
+          console.log(`[Catálogo] Cliente existente identificado (ID: ${existingCust.id}, Nome em banco: ${existingCust.name}). Atualizando dados de contato se fornecidos...`);
           await supabaseClient
             .from('customers')
             .update({
-              name: finalCustomerName.toUpperCase(),
-              last_name: customerLastName || undefined,
-              phone: cleanPhoneStr || undefined,
-              cpf: customerCpf || undefined,
-              email: customerEmail || undefined,
+              name: custNameInDb ? custNameInDb.toUpperCase() : finalCustomerName.toUpperCase(),
+              last_name: existingCust.last_name || customerLastName || undefined,
+              phone: cleanPhoneStr || existingCust.phone || undefined,
+              cpf: customerCpf || existingCust.cpf || undefined,
+              email: customerEmail || existingCust.email || undefined,
             })
             .eq('id', existingCust.id);
         } else {
@@ -435,7 +441,7 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
         discount: 0,
         surcharge: 0,
         profit,
-        customer_name: finalCustomerName,
+        customer_name: saleCustomerName,
         payment_method: paymentMethod,
         payment_option_type: paymentMethod === 'pix' ? (pixSettings?.rule || 'valor_real') : null,
         status: paymentMethod === 'pix' ? 'awaiting_payment' : 'completed',
