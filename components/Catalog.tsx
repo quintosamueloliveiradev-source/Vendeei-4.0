@@ -52,6 +52,8 @@ export const Catalog: React.FC = () => {
   const [isCheckingPhone, setIsCheckingPhone] = useState(false);
   const [avisoTelefone, setAvisoTelefone] = useState('');
   const [copied, setCopied] = useState(false);
+  const [pixCopiado, setPixCopiado] = useState(false);
+  const [avisoPix, setAvisoPix] = useState('');
 
   const resetCustomerForm = () => {
     setCustomerName('');
@@ -62,6 +64,8 @@ export const Catalog: React.FC = () => {
     setStepCheckout('phone_check');
     setIsExistingCustomer(false);
     setAvisoTelefone('');
+    setPixCopiado(false);
+    setAvisoPix('');
     setDuplicateErrors({ cpf: false, phone: false, email: false });
     setErrorMessages({ cpf: '', phone: '', email: '' });
   };
@@ -149,6 +153,8 @@ export const Catalog: React.FC = () => {
     if (!pixSettings.key) return;
     navigator.clipboard.writeText(pixSettings.key);
     setCopied(true);
+    setPixCopiado(true);
+    setAvisoPix('');
     setTimeout(() => setCopied(false), 3000);
   };
   
@@ -497,6 +503,8 @@ export const Catalog: React.FC = () => {
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
     
     if (paymentMethod === 'pix') {
+      setPixCopiado(false);
+      setAvisoPix('');
       setCheckoutStep('pix_instructions');
     } else {
       window.open(whatsappUrl, '_blank');
@@ -510,6 +518,10 @@ export const Catalog: React.FC = () => {
   };
 
   const sendPixProof = () => {
+    if (!pixCopiado) {
+      setAvisoPix('Atenção: Você precisa clicar em "Copiar Chave Pix" antes de enviar o comprovante.');
+      return;
+    }
     if (!orderId) return;
     const cleanPhone = whatsappNumber.replace(/\D/g, '');
     const expiryDate = expiresAt ? new Date(expiresAt) : new Date(Date.now() + 30 * 60 * 1000);
@@ -879,11 +891,23 @@ export const Catalog: React.FC = () => {
                     </div>
 
                     <div className="space-y-3">
+                      {avisoPix && (
+                        <div className="flex items-center gap-2 text-amber-800 text-xs bg-amber-50 p-3 rounded-xl border border-amber-300 shadow-sm text-left">
+                          <span className="text-base">⚠️</span>
+                          <span className="font-semibold">{avisoPix}</span>
+                        </div>
+                      )}
+
                       <button 
                         onClick={sendPixProof}
-                        className="w-full py-4 bg-green-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-lg shadow-green-200"
+                        disabled={!pixCopiado}
+                        className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all duration-200 ${
+                          pixCopiado 
+                            ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-200 cursor-pointer transform active:scale-98' 
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60 border border-gray-300'
+                        }`}
                       >
-                        Enviar Comprovante <ChevronRight size={18}/>
+                        <span>Enviar Comprovante</span> <ChevronRight size={18}/>
                       </button>
 
                       <button 
