@@ -311,38 +311,29 @@ export const Catalog: React.FC = () => {
           });
 
           if (matchingCust) {
-            const norm = (str?: string) => (str || '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            const inputNorm = norm(fullName);
-            const dbNameNorm = norm(matchingCust.name);
-            const dbFullNameNorm = norm(`${matchingCust.name || ''} ${matchingCust.last_name || ''}`);
+            const cPhoneDigits = (matchingCust.phone || '').replace(/\D/g, '');
+            const cCpfDigits = (matchingCust.cpf || '').replace(/\D/g, '');
+            const cEmailLower = (matchingCust.email || '').trim().toLowerCase();
 
-            const isSameName = 
-              inputNorm === dbNameNorm || 
-              inputNorm === dbFullNameNorm ||
-              (inputNorm.length > 2 && dbNameNorm.length > 2 && (inputNorm.includes(dbNameNorm) || dbNameNorm.includes(inputNorm)));
+            const phoneMatches = cleanPhoneDigits.length >= 8 && cPhoneDigits.length >= 8 && cleanPhoneDigits === cPhoneDigits;
 
-            if (!isSameName) {
+            if (!phoneMatches || stepCheckout === 'complete_form') {
               const newDupErrors = { cpf: false, phone: false, email: false };
               const newErrorMsgs = { cpf: '', phone: '', email: '' };
-
-              const cPhoneDigits = (matchingCust.phone || '').replace(/\D/g, '');
-              const cCpfDigits = (matchingCust.cpf || '').replace(/\D/g, '');
-              const cEmailLower = (matchingCust.email || '').trim().toLowerCase();
-
               let avisoMsg = '';
 
               if (cleanPhoneDigits.length >= 8 && cPhoneDigits === cleanPhoneDigits) {
                 newDupErrors.phone = true;
                 newErrorMsgs.phone = `Este WhatsApp/Telefone já está cadastrado em nossa base.`;
                 avisoMsg = 'Este WhatsApp/Telefone já está cadastrado em nossa base.';
-              } else if (cleanEmailLower.length > 0 && cEmailLower === cleanEmailLower) {
-                newDupErrors.email = true;
-                newErrorMsgs.email = `Este E-mail já está sendo utilizado por outro cliente.`;
-                avisoMsg = 'Este E-mail já está sendo utilizado por outro cliente.';
               } else if (cleanCpfDigits.length >= 11 && cCpfDigits === cleanCpfDigits) {
                 newDupErrors.cpf = true;
                 newErrorMsgs.cpf = `Este CPF já está cadastrado no sistema.`;
                 avisoMsg = 'Este CPF já está cadastrado no sistema.';
+              } else if (cleanEmailLower.length > 0 && cEmailLower === cleanEmailLower) {
+                newDupErrors.email = true;
+                newErrorMsgs.email = `Este E-mail já está sendo utilizado por outro cliente.`;
+                avisoMsg = 'Este E-mail já está sendo utilizado por outro cliente.';
               }
 
               setAvisoTelefone(avisoMsg);

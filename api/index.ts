@@ -397,31 +397,23 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
         }
 
         if (existingCust) {
-          const norm = (str?: string) => (str || '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-          const inputNorm = norm(finalCustomerName);
-          const dbNameNorm = norm(existingCust.name);
-          const dbFullNameNorm = norm(`${existingCust.name || ''} ${existingCust.last_name || ''}`);
+          const cPhoneDigits = cleanDigits(existingCust.phone);
+          const cCpfDigits = cleanDigits(existingCust.cpf);
+          const cEmailLower = (existingCust.email || '').trim().toLowerCase();
 
-          const isSameName = 
-            inputNorm === dbNameNorm || 
-            inputNorm === dbFullNameNorm ||
-            (inputNorm.length > 2 && dbNameNorm.length > 2 && (inputNorm.includes(dbNameNorm) || dbNameNorm.includes(inputNorm)));
+          const phoneMatches = cleanPhoneDigits.length >= 8 && cPhoneDigits.length >= 8 && cleanPhoneDigits === cPhoneDigits;
 
-          if (!isSameName) {
-            const cPhoneDigits = cleanDigits(existingCust.phone);
-            const cCpfDigits = cleanDigits(existingCust.cpf);
-            const cEmailLower = (existingCust.email || '').trim().toLowerCase();
-
+          if (!phoneMatches) {
             let mensAviso = "Dados de contato já cadastrados em nossa base.";
-            if (cleanPhoneDigits.length >= 8 && cPhoneDigits === cleanPhoneDigits) {
-              mensAviso = "Este WhatsApp/Telefone já está cadastrado em nossa base.";
+            if (cleanCpfDigits.length >= 11 && cCpfDigits === cleanCpfDigits) {
+              mensAviso = "Este CPF já está cadastrado no sistema.";
             } else if (cleanEmailStr.length > 0 && cEmailLower === cleanEmailStr) {
               mensAviso = "Este E-mail já está sendo utilizado por outro cliente.";
-            } else if (cleanCpfDigits.length >= 11 && cCpfDigits === cleanCpfDigits) {
-              mensAviso = "Este CPF já está cadastrado no sistema.";
+            } else if (cleanPhoneDigits.length >= 8 && cPhoneDigits === cleanPhoneDigits) {
+              mensAviso = "Este WhatsApp/Telefone já está cadastrado em nossa base.";
             }
 
-            console.log(`[Catálogo] Bloqueado: ${mensAviso} para ${finalCustomerName}`);
+            console.log(`[Catálogo] Bloqueado backend: ${mensAviso} para ${finalCustomerName}`);
             return res.status(400).json({
               message: mensAviso
             });
