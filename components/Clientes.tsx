@@ -36,7 +36,7 @@ export const Clientes: React.FC = () => {
       // Buscar vendas para calcular o Total Gasto real por cliente (apenas concluídas/pagas)
       const { data: salesData } = await supabase
         .from('sales')
-        .select('customer_name, total, status')
+        .select('customer_id, customer_name, total, status')
         .eq('user_id', user.id);
 
       if (data) {
@@ -44,23 +44,31 @@ export const Clientes: React.FC = () => {
           let realTotalSpent = 0;
           if (salesData && salesData.length > 0) {
             const customerSales = salesData.filter((s: any) => {
-              if (!s.customer_name) return false;
-
-              const custFullName = `${c.name || ''} ${c.last_name || ''}`.trim().toUpperCase();
-              const custFirstName = (c.name || '').trim().toUpperCase();
-              const saleCustName = s.customer_name.trim().toUpperCase();
-
-              const matchesName = 
-                saleCustName === custFullName || 
-                saleCustName === custFirstName ||
-                (custFirstName.length > 2 && saleCustName.includes(custFirstName)) ||
-                (custFullName.length > 2 && custFullName.includes(saleCustName));
-
               // Considera APENAS vendas concluídas / completadas / pagas
               // Exclui 'awaiting_payment', 'pending', 'canceled', etc.
               const isCompleted = s.status === 'completed' || s.status === 'concluido' || s.status === 'pago';
+              if (!isCompleted) return false;
 
-              return matchesName && isCompleted;
+              // Vínculo direto via customer_id
+              if (s.customer_id && s.customer_id === c.id) {
+                return true;
+              }
+
+              // Fallback para conciliação por nome se customer_id for nulo
+              if (!s.customer_id && s.customer_name) {
+                const custFullName = `${c.name || ''} ${c.last_name || ''}`.trim().toUpperCase();
+                const custFirstName = (c.name || '').trim().toUpperCase();
+                const saleCustName = s.customer_name.trim().toUpperCase();
+
+                return (
+                  saleCustName === custFullName || 
+                  saleCustName === custFirstName ||
+                  (custFirstName.length > 2 && saleCustName.includes(custFirstName)) ||
+                  (custFullName.length > 2 && custFullName.includes(saleCustName))
+                );
+              }
+
+              return false;
             });
 
             realTotalSpent = customerSales.reduce((acc: number, s: any) => acc + (Number(s.total) || 0), 0);

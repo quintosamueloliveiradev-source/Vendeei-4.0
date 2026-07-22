@@ -693,6 +693,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         .insert([{
           id: formattedId,
           user_id: user.id,
+          customer_id: customer?.id || null,
           subtotal,
           total,
           discount,

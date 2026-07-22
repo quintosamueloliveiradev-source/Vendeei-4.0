@@ -363,6 +363,8 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
     const finalCustomerName = constructedName || name || 'Cliente do Catálogo';
     let saleCustomerName = finalCustomerName.toUpperCase();
 
+    let customerIdFoundOrCreated: string | null = null;
+
     // 0. Salvar ou atualizar cliente na tabela 'customers' (Prevenção de Duplicidade)
     if (storeId) {
       try {
@@ -426,6 +428,7 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
           }
 
           saleCustomerName = (existingCust.name || finalCustomerName).toUpperCase();
+          customerIdFoundOrCreated = existingCust.id;
 
           console.log(`[Catálogo] Cliente existente identificado (ID: ${existingCust.id}, Nome em banco: ${existingCust.name}). Atualizando dados de contato se fornecidos...`);
           await supabaseClient
@@ -438,7 +441,7 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
             .eq('id', existingCust.id);
         } else {
           console.log(`[Catálogo] Novo cliente identificado. Cadastrando na tabela customers...`);
-          await supabaseClient
+          const { data: newCustData, error: newCustErr } = await supabaseClient
             .from('customers')
             .insert([{
               user_id: storeId,
@@ -448,7 +451,13 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
               cpf: customerCpf || '',
               email: customerEmail || '',
               total_spent: 0
-            }]);
+            }])
+            .select('id')
+            .single();
+
+          if (!newCustErr && newCustData) {
+            customerIdFoundOrCreated = newCustData.id;
+          }
         }
       } catch (custErr) {
         console.error('Erro ao salvar/atualizar cliente na base customers:', custErr);
@@ -461,6 +470,7 @@ app.post('/api/catalog/order', async (req: express.Request, res: express.Respons
       .insert([{
         id: orderId,
         user_id: storeId,
+        customer_id: customerIdFoundOrCreated,
         subtotal: total,
         total: finalTotalWithCents,
         discount: 0,
