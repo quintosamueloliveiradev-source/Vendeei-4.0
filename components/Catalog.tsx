@@ -103,22 +103,24 @@ export const Catalog: React.FC = () => {
 
   const handleVerificarTelefone = async () => {
     const cleanDigits = customerPhone.replace(/\D/g, '');
-    if (!cleanDigits || cleanDigits.length < 8) {
-      alert("Por favor, digite um número de WhatsApp válido.");
+    if (cleanDigits.length < 11) {
+      alert("Por favor, digite o WhatsApp completo com DDD e 9º dígito (11 números).");
       return;
     }
     await checkCustomerByPhone(customerPhone);
   };
 
   const handlePhoneChange = (value: string) => {
+    const cleanDigits = value.replace(/\D/g, '');
+    if (cleanDigits.length > 11) return;
+
     setCustomerPhone(value);
     if (duplicateErrors.phone) {
       setDuplicateErrors(prev => ({ ...prev, phone: false }));
       setErrorMessages(prev => ({ ...prev, phone: '' }));
     }
 
-    const cleanDigits = value.replace(/\D/g, '');
-    if (cleanDigits.length >= 10) {
+    if (cleanDigits.length === 11) {
       checkCustomerByPhone(value);
     } else {
       setStepCheckout('phone_check');
@@ -621,12 +623,13 @@ export const Catalog: React.FC = () => {
                                 <div className="flex gap-2">
                                     <input
                                         type="tel"
-                                        placeholder="(00) 00000-0000"
+                                        placeholder="(00) 90000-0000"
+                                        maxLength={15}
                                         value={customerPhone}
                                         onChange={(e) => handlePhoneChange(e.target.value)}
                                         onBlur={() => {
                                             const cleanDigits = customerPhone.replace(/\D/g, '');
-                                            if (cleanDigits.length >= 8 && stepCheckout === 'phone_check' && !isCheckingPhone) {
+                                            if (cleanDigits.length === 11 && stepCheckout === 'phone_check' && !isCheckingPhone) {
                                                 checkCustomerByPhone(customerPhone);
                                             }
                                         }}
@@ -655,6 +658,7 @@ export const Catalog: React.FC = () => {
                                         </button>
                                     )}
                                 </div>
+                                <span className="text-xs text-gray-500 mt-1 block">Informe o DDD e o número com 9 dígitos.</span>
                                 {duplicateErrors.phone && (
                                     <p className="text-xs text-red-600 font-semibold mt-1 px-1 flex items-center gap-1">
                                         ⚠️ {errorMessages.phone}
