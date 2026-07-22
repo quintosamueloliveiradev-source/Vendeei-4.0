@@ -93,7 +93,7 @@ export const SalesHistory: React.FC = () => {
         }
       }
 
-      const mensagemSucesso = `*✅ COMPROVANTE RECEBIDO COM SUCESSO!*\n\nMuito obrigado pelo seu pedido! \u{1F60A} Seu pagamento foi confirmado e daremos continuidade ao processamento. Agradecemos pela preferência!`;
+      const mensagemSucesso = `*\u2705 COMPROVANTE RECEBIDO COM SUCESSO!*\n\nMuito obrigado pelo seu pedido! \uD83D\uDE0A Seu pagamento foi confirmado e daremos continuidade ao processamento. Agradecemos pela preferência!`;
 
       if (phone) {
         let cleanPhone = phone.replace(/\D/g, '');
@@ -101,7 +101,7 @@ export const SalesHistory: React.FC = () => {
           if (!cleanPhone.startsWith('55')) {
             cleanPhone = `55${cleanPhone}`;
           }
-          window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(mensagemSucesso)}`, '_blank');
+          window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(mensagemSucesso)}`, '_blank');
           return;
         }
       }
