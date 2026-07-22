@@ -47,6 +47,9 @@ export const Catalog: React.FC = () => {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'pix_instructions'>('cart');
+  const [stepCheckout, setStepCheckout] = useState<'phone_check' | 'complete_form' | 'ready_to_buy'>('phone_check');
+  const [isExistingCustomer, setIsExistingCustomer] = useState(false);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const resetCustomerForm = () => {
@@ -55,8 +58,50 @@ export const Catalog: React.FC = () => {
     setCustomerCpf('');
     setCustomerPhone('');
     setCustomerEmail('');
+    setStepCheckout('phone_check');
+    setIsExistingCustomer(false);
     setDuplicateErrors({ cpf: false, phone: false, email: false });
     setErrorMessages({ cpf: '', phone: '', email: '' });
+  };
+
+  const handleVerificarTelefone = async () => {
+    const cleanDigits = customerPhone.replace(/\D/g, '');
+    if (!cleanDigits || cleanDigits.length < 8) {
+      alert("Por favor, digite um número de WhatsApp válido.");
+      return;
+    }
+
+    setIsCheckingPhone(true);
+    try {
+      let query = supabase.from('customers').select('*');
+      if (storeId) {
+        query = query.eq('user_id', storeId);
+      }
+      const { data: clientes, error } = await query;
+      if (error) throw error;
+
+      const clienteEncontrado = clientes?.find((c: any) => {
+        const cPhone = (c.phone || '').replace(/\D/g, '');
+        return cPhone.length >= 8 && (cPhone === cleanDigits || cPhone.endsWith(cleanDigits) || cleanDigits.endsWith(cPhone));
+      });
+
+      if (clienteEncontrado) {
+        setCustomerName(clienteEncontrado.name || '');
+        setCustomerLastName(clienteEncontrado.last_name || '');
+        setCustomerEmail(clienteEncontrado.email || '');
+        setCustomerCpf(clienteEncontrado.cpf || '');
+        setIsExistingCustomer(true);
+        setStepCheckout('ready_to_buy');
+      } else {
+        setIsExistingCustomer(false);
+        setStepCheckout('complete_form');
+      }
+    } catch (err) {
+      console.error("Erro ao verificar telefone:", err);
+      setStepCheckout('complete_form');
+    } finally {
+      setIsCheckingPhone(false);
+    }
   };
 
   const copiarChavePix = () => {
@@ -546,68 +591,51 @@ export const Catalog: React.FC = () => {
                     <div className="space-y-4 border-t pt-4">
                         {/* DADOS DO CLIENTE */}
                         <div className="space-y-3">
-                            <div className="grid grid-cols-2 gap-2">
-                                <input
-                                    type="text"
-                                    placeholder="Nome *"
-                                    value={customerName}
-                                    onChange={(e) => setCustomerName(e.target.value)}
-                                    required
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-green-500"
-                                />
-                                <input
-                                    type="text"
-                                    placeholder="Sobrenome"
-                                    value={customerLastName}
-                                    onChange={(e) => setCustomerLastName(e.target.value)}
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-green-500"
-                                />
-                            </div>
-
+                            {/* Passo 1: Sempre pede apenas o WhatsApp primeiro */}
                             <div>
-                                <input
-                                    type="text"
-                                    placeholder="CPF (Opcional)"
-                                    value={customerCpf}
-                                    onChange={(e) => {
-                                        setCustomerCpf(e.target.value);
-                                        if (duplicateErrors.cpf) {
-                                            setDuplicateErrors(prev => ({ ...prev, cpf: false }));
-                                            setErrorMessages(prev => ({ ...prev, cpf: '' }));
-                                        }
-                                    }}
-                                    className={`w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:bg-white focus:ring-2 transition-all ${
-                                        duplicateErrors.cpf
-                                            ? 'border-red-500 ring-2 ring-red-500/20 bg-red-50/50'
-                                            : 'border-gray-200 focus:ring-green-500'
-                                    }`}
-                                />
-                                {duplicateErrors.cpf && (
-                                    <p className="text-xs text-red-600 font-semibold mt-1 px-1 flex items-center gap-1">
-                                        ⚠️ {errorMessages.cpf}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div>
-                                <input
-                                    type="tel"
-                                    placeholder="WhatsApp / Telefone *"
-                                    value={customerPhone}
-                                    onChange={(e) => {
-                                        setCustomerPhone(e.target.value);
-                                        if (duplicateErrors.phone) {
-                                            setDuplicateErrors(prev => ({ ...prev, phone: false }));
-                                            setErrorMessages(prev => ({ ...prev, phone: '' }));
-                                        }
-                                    }}
-                                    required
-                                    className={`w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:bg-white focus:ring-2 transition-all ${
-                                        duplicateErrors.phone
-                                            ? 'border-red-500 ring-2 ring-red-500/20 bg-red-50/50'
-                                            : 'border-gray-200 focus:ring-green-500'
-                                    }`}
-                                />
+                                <label className="text-xs text-gray-500 font-semibold mb-1 block">
+                                    WhatsApp / Telefone *
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="tel"
+                                        placeholder="(00) 00000-0000"
+                                        value={customerPhone}
+                                        onChange={(e) => {
+                                            setCustomerPhone(e.target.value);
+                                            if (stepCheckout !== 'phone_check') {
+                                                setStepCheckout('phone_check');
+                                            }
+                                            if (duplicateErrors.phone) {
+                                                setDuplicateErrors(prev => ({ ...prev, phone: false }));
+                                                setErrorMessages(prev => ({ ...prev, phone: '' }));
+                                            }
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && stepCheckout === 'phone_check') {
+                                                e.preventDefault();
+                                                handleVerificarTelefone();
+                                            }
+                                        }}
+                                        disabled={isCheckingPhone || stepCheckout === 'ready_to_buy'}
+                                        required
+                                        className={`w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:bg-white focus:ring-2 transition-all ${
+                                            duplicateErrors.phone
+                                                ? 'border-red-500 ring-2 ring-red-500/20 bg-red-50/50'
+                                                : 'border-gray-200 focus:ring-green-500'
+                                        }`}
+                                    />
+                                    {stepCheckout === 'phone_check' && (
+                                        <button
+                                            type="button"
+                                            onClick={handleVerificarTelefone}
+                                            disabled={isCheckingPhone || !customerPhone.trim()}
+                                            className="bg-green-600 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-green-700 active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center min-w-[60px]"
+                                        >
+                                            {isCheckingPhone ? '...' : 'OK'}
+                                        </button>
+                                    )}
+                                </div>
                                 {duplicateErrors.phone && (
                                     <p className="text-xs text-red-600 font-semibold mt-1 px-1 flex items-center gap-1">
                                         ⚠️ {errorMessages.phone}
@@ -615,31 +643,101 @@ export const Catalog: React.FC = () => {
                                 )}
                             </div>
 
-                            <div>
-                                <input
-                                    type="email"
-                                    placeholder="E-mail *"
-                                    value={customerEmail}
-                                    onChange={(e) => {
-                                        setCustomerEmail(e.target.value);
-                                        if (duplicateErrors.email) {
-                                            setDuplicateErrors(prev => ({ ...prev, email: false }));
-                                            setErrorMessages(prev => ({ ...prev, email: '' }));
-                                        }
-                                    }}
-                                    required
-                                    className={`w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:bg-white focus:ring-2 transition-all ${
-                                        duplicateErrors.email
-                                            ? 'border-red-500 ring-2 ring-red-500/20 bg-red-50/50'
-                                            : 'border-gray-200 focus:ring-green-500'
-                                    }`}
-                                />
-                                {duplicateErrors.email && (
-                                    <p className="text-xs text-red-600 font-semibold mt-1 px-1 flex items-center gap-1">
-                                        ⚠️ {errorMessages.email}
+                            {/* Se já for cliente cadastrado, mostra mensagem amigável */}
+                            {stepCheckout === 'ready_to_buy' && isExistingCustomer && (
+                                <div className="bg-green-50 border border-green-200 p-3 rounded-xl text-sm text-green-800 space-y-1 animate-fade-in">
+                                    <p className="font-semibold">
+                                        👋 Olá, <b>{customerName}</b>! Reconhecemos seu número. Pronto para finalizar?
                                     </p>
-                                )}
-                            </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setStepCheckout('phone_check');
+                                            setIsExistingCustomer(false);
+                                        }}
+                                        className="text-xs text-blue-600 hover:underline block font-medium"
+                                    >
+                                        Não é você? Alterar número
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Se o cliente for NOVO ou se abriu o formulário completo */}
+                            {stepCheckout === 'complete_form' && (
+                                <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-dashed border-slate-300 animate-fade-in">
+                                    <p className="text-xs text-green-700 font-semibold flex items-center gap-1">
+                                        ✨ Número novo! Por favor, preencha seus dados:
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Nome *"
+                                            value={customerName}
+                                            onChange={(e) => setCustomerName(e.target.value)}
+                                            required
+                                            className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-500"
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="Sobrenome"
+                                            value={customerLastName}
+                                            onChange={(e) => setCustomerLastName(e.target.value)}
+                                            className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-500"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <input
+                                            type="text"
+                                            placeholder="CPF (Opcional)"
+                                            value={customerCpf}
+                                            onChange={(e) => {
+                                                setCustomerCpf(e.target.value);
+                                                if (duplicateErrors.cpf) {
+                                                    setDuplicateErrors(prev => ({ ...prev, cpf: false }));
+                                                    setErrorMessages(prev => ({ ...prev, cpf: '' }));
+                                                }
+                                            }}
+                                            className={`w-full p-2.5 bg-white border rounded-lg text-sm outline-none focus:ring-2 transition-all ${
+                                                duplicateErrors.cpf
+                                                    ? 'border-red-500 ring-2 ring-red-500/20'
+                                                    : 'border-gray-200 focus:ring-green-500'
+                                            }`}
+                                        />
+                                        {duplicateErrors.cpf && (
+                                            <p className="text-xs text-red-600 font-semibold mt-1 px-1 flex items-center gap-1">
+                                                ⚠️ {errorMessages.cpf}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <input
+                                            type="email"
+                                            placeholder="E-mail *"
+                                            value={customerEmail}
+                                            onChange={(e) => {
+                                                setCustomerEmail(e.target.value);
+                                                if (duplicateErrors.email) {
+                                                    setDuplicateErrors(prev => ({ ...prev, email: false }));
+                                                    setErrorMessages(prev => ({ ...prev, email: '' }));
+                                                }
+                                            }}
+                                            required
+                                            className={`w-full p-2.5 bg-white border rounded-lg text-sm outline-none focus:ring-2 transition-all ${
+                                                duplicateErrors.email
+                                                    ? 'border-red-500 ring-2 ring-red-500/20'
+                                                    : 'border-gray-200 focus:ring-green-500'
+                                            }`}
+                                        />
+                                        {duplicateErrors.email && (
+                                            <p className="text-xs text-red-600 font-semibold mt-1 px-1 flex items-center gap-1">
+                                                ⚠️ {errorMessages.email}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         
                         <div className="flex gap-2">
@@ -681,13 +779,16 @@ export const Catalog: React.FC = () => {
                             </div>
                         )}
 
-                        <button 
-                            onClick={sendWhatsAppOrder}
-                            disabled={isSubmitting || cart.length === 0 || !customerName.trim() || !customerPhone.trim() || !customerEmail.trim()}
-                            className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${isSubmitting || !customerName.trim() || !customerPhone.trim() || !customerEmail.trim() ? 'bg-slate-300 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700 active:scale-95'}`}
-                        >
-                            {isSubmitting ? 'Processando...' : 'Enviar Pedido'} <ChevronRight size={18}/>
-                        </button>
+                        {/* Botão de Enviar Pedido (só aparece se já validou o telefone ou completou o cadastro) */}
+                        {(stepCheckout === 'ready_to_buy' || stepCheckout === 'complete_form') && (
+                            <button 
+                                onClick={sendWhatsAppOrder}
+                                disabled={isSubmitting || cart.length === 0 || !customerName.trim() || !customerPhone.trim() || !customerEmail.trim()}
+                                className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${isSubmitting || !customerName.trim() || !customerPhone.trim() || !customerEmail.trim() ? 'bg-slate-300 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700 active:scale-95'}`}
+                            >
+                                {isSubmitting ? 'Processando...' : 'Enviar Pedido'} <ChevronRight size={18}/>
+                            </button>
+                        )}
                     </div>
                   </>
                 ) : (
