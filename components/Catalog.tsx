@@ -429,11 +429,11 @@ export const Catalog: React.FC = () => {
     const formattedExpirationTime = expiryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const fullName = `${customerName} ${customerLastName}`.trim();
 
-    const proofMessage = `*✅ COMPROVANTE DE PAGAMENTO*\n` +
-      `*Pedido:* #${orderId}\n` +
-      `*Cliente:* ${fullName}\n` +
-      `*Valor Pago:* R$ ${finalTotalWithCents.toFixed(2)}\n\n` +
-      `Envie o comprovante antes das *${formattedExpirationTime}* para evitar cancelamento automático do seu pedido.`;
+    const proofMessage = `✅ AGUARDANDO COMPROVANTE\n` +
+      `Pedido: #${orderId}\n` +
+      `Cliente: ${fullName}\n` +
+      `Valor à Pagar: R$ ${finalTotalWithCents.toFixed(2)}\n\n` +
+      `Envie o comprovante antes das ${formattedExpirationTime} para evitar cancelamento automático do seu pedido.`;
       
     window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(proofMessage)}`, '_blank');
     
