@@ -108,6 +108,8 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({ isOpen, onCl
   const [copiaCola, setCopiaCola] = useState('');
   const [isSimulated, setIsSimulated] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [pixCopiado, setPixCopiado] = useState(false);
+  const [avisoPix, setAvisoPix] = useState('');
   const [pollingActive, setPollingActive] = useState(false);
   const [pollingErrorCount, setPollingErrorCount] = useState(0);
 
@@ -234,11 +236,18 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({ isOpen, onCl
     if (!copiaCola) return;
     navigator.clipboard.writeText(copiaCola);
     setCopied(true);
+    setPixCopiado(true);
+    setAvisoPix('');
     addToast('Chave Copia e Cola copiada!', 'success');
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleSimulatePaymentApproval = async () => {
+    if (!pixCopiado) {
+      setAvisoPix('Por favor, clique em "Copiar" na chave Pix antes de prosseguir com a confirmação.');
+      addToast('Você precisa copiar a chave Pix antes de continuar.', 'warning');
+      return;
+    }
     if (!profile) return;
     setLoadingPayment(true);
     try {
@@ -395,31 +404,40 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({ isOpen, onCl
               </div>
 
               {/* Copy / Paste */}
-              <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 flex items-center justify-between gap-2 text-left">
-                <div className="max-w-[200px] overflow-hidden">
-                  <p className="text-label-sm font-label-sm uppercase font-semibold text-slate-400">Pix Copia e Cola</p>
-                  <p className="text-debug-mono font-debug-mono text-slate-600 truncate mt-0.5">{copiaCola || 'PIX_PAYLOAD'}</p>
+              <div className="space-y-2">
+                <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 flex items-center justify-between gap-2 text-left">
+                  <div className="max-w-[200px] overflow-hidden">
+                    <p className="text-label-sm font-label-sm uppercase font-semibold text-slate-400">Pix Copia e Cola</p>
+                    <p className="text-debug-mono font-debug-mono text-slate-600 truncate mt-0.5">{copiaCola || 'PIX_PAYLOAD'}</p>
+                  </div>
+                  <button 
+                    onClick={handleCopyCode}
+                    className={`px-2.5 py-2 rounded-lg border font-title-md text-xs transition-all active:scale-95 shrink-0 flex items-center gap-1 cursor-pointer ${
+                      copied 
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
+                        : 'bg-white border-slate-200 text-slate-600'
+                    }`}
+                  >
+                    {copied ? (
+                      <>
+                        <Check size={12} className="text-emerald-500" />
+                        <span>Copiado!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={12} />
+                        <span>Copiar</span>
+                      </>
+                    )}
+                  </button>
                 </div>
-                <button 
-                  onClick={handleCopyCode}
-                  className={`px-2.5 py-2 rounded-lg border font-title-md text-xs transition-all active:scale-95 shrink-0 flex items-center gap-1 cursor-pointer ${
-                    copied 
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
-                      : 'bg-white border-slate-200 text-slate-600'
-                  }`}
-                >
-                  {copied ? (
-                    <>
-                      <Check size={12} className="text-emerald-500" />
-                      <span>Copiado!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={12} />
-                      <span>Copiar</span>
-                    </>
-                  )}
-                </button>
+
+                {avisoPix && (
+                  <div className="flex items-center gap-2 text-amber-700 text-xs bg-amber-50 p-2.5 rounded-lg border border-amber-200 mb-2 text-left">
+                    <span>⚠️</span>
+                    <span className="font-medium">{avisoPix}</span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1.5 pt-2 border-t border-slate-100">
