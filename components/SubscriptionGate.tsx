@@ -258,7 +258,7 @@ export const SubscriptionGate: React.FC = () => {
   // Simular aprovação instantânea se for simulado
   const handleSimulatePaymentApproval = async () => {
     if (!pixCopiado) {
-      setAvisoPix('Por favor, clique em "Copiar Chave Pix" antes de enviar o comprovante.');
+      setAvisoPix('Atenção: Você precisa clicar em "Copiar Chave Pix" antes de enviar o comprovante.');
       addToast('Você precisa copiar a chave Pix antes de continuar.', 'warning');
       return;
     }
@@ -497,9 +497,9 @@ export const SubscriptionGate: React.FC = () => {
                 </div>
 
                 {avisoPix && (
-                  <div className="flex items-center gap-2 text-amber-700 text-xs bg-amber-50 p-2.5 rounded-lg border border-amber-200 mb-2 text-left">
-                    <span>⚠️</span>
-                    <span className="font-medium">{avisoPix}</span>
+                  <div className="flex items-center gap-2 text-amber-800 text-xs bg-amber-50 p-3 rounded-xl border border-amber-300 mb-3 shadow-sm text-left">
+                    <span className="text-base">⚠️</span>
+                    <span className="font-semibold">{avisoPix}</span>
                   </div>
                 )}
               </div>
@@ -509,14 +509,14 @@ export const SubscriptionGate: React.FC = () => {
                   <button 
                     onClick={handleSimulatePaymentApproval}
                     disabled={!pixCopiado}
-                    className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition ${
+                    className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 ${
                       pixCopiado 
-                        ? 'bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer shadow-md' 
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-75'
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg cursor-pointer transform active:scale-98' 
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60 border border-gray-300'
                     }`}
                   >
-                    <CheckCircle size={14} />
-                    Enviar Comprovante ➔
+                    <span>Enviar Comprovante</span>
+                    <span>➔</span>
                   </button>
                 )}
                 <button 
