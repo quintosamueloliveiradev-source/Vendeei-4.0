@@ -133,6 +133,18 @@ export const Catalog: React.FC = () => {
     }
   };
 
+  const handleCpfChange = (value: string) => {
+    const apenasNumeros = value.replace(/\D/g, '');
+    if (apenasNumeros.length <= 11) {
+      setCustomerCpf(apenasNumeros);
+      if (avisoTelefone) setAvisoTelefone('');
+      if (duplicateErrors.cpf) {
+        setDuplicateErrors(prev => ({ ...prev, cpf: false }));
+        setErrorMessages(prev => ({ ...prev, cpf: '' }));
+      }
+    }
+  };
+
   const copiarChavePix = () => {
     if (!pixSettings.key) return;
     navigator.clipboard.writeText(pixSettings.key);
@@ -724,15 +736,10 @@ export const Catalog: React.FC = () => {
                                     <div>
                                         <input
                                             type="text"
-                                            placeholder="CPF (Opcional)"
+                                            placeholder="CPF (apenas números ex: 12345678901)"
                                             value={customerCpf}
-                                            onChange={(e) => {
-                                                setCustomerCpf(e.target.value);
-                                                if (duplicateErrors.cpf) {
-                                                    setDuplicateErrors(prev => ({ ...prev, cpf: false }));
-                                                    setErrorMessages(prev => ({ ...prev, cpf: '' }));
-                                                }
-                                            }}
+                                            onChange={(e) => handleCpfChange(e.target.value)}
+                                            maxLength={11}
                                             className={`w-full p-2.5 bg-white border rounded-lg text-sm outline-none focus:ring-2 transition-all ${
                                                 duplicateErrors.cpf
                                                     ? 'border-red-500 ring-2 ring-red-500/20'
