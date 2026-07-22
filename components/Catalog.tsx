@@ -870,10 +870,17 @@ export const Catalog: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="space-y-1 pt-2 border-t border-slate-200">
-                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Chave Pix ({pixSettings.bank || 'Banco'})</p>
-                        <div className="text-sm font-mono font-bold text-slate-800 break-all select-none bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
-                          {pixSettings.key}
+                      <div className="space-y-2 pt-2 border-t border-slate-200 text-left">
+                        {pixSettings.bank && (
+                          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            Destinatário: <span className="font-semibold text-slate-700 normal-case">{pixSettings.bank}</span>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Chave Pix</p>
+                          <div className="text-sm font-mono font-bold text-slate-800 break-all select-none bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                            {pixSettings.key}
+                          </div>
                         </div>
                         <button
                           onClick={copiarChavePix}
