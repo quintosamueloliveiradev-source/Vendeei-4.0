@@ -22,6 +22,16 @@ export const Catalog: React.FC = () => {
   const [customerCpf, setCustomerCpf] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
+  const [duplicateErrors, setDuplicateErrors] = useState({
+    cpf: false,
+    phone: false,
+    email: false
+  });
+  const [errorMessages, setErrorMessages] = useState({
+    cpf: '',
+    phone: '',
+    email: ''
+  });
   const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
   const [address, setAddress] = useState('');
   const [number, setNumber] = useState('');
@@ -45,6 +55,8 @@ export const Catalog: React.FC = () => {
     setCustomerCpf('');
     setCustomerPhone('');
     setCustomerEmail('');
+    setDuplicateErrors({ cpf: false, phone: false, email: false });
+    setErrorMessages({ cpf: '', phone: '', email: '' });
   };
 
   const copiarChavePix = () => {
@@ -187,6 +199,8 @@ export const Catalog: React.FC = () => {
   const saveOrder = async () => {
     if (!storeId || cart.length === 0) return null;
     setIsSubmitting(true);
+    setDuplicateErrors({ cpf: false, phone: false, email: false });
+    setErrorMessages({ cpf: '', phone: '', email: '' });
 
     const fullName = `${customerName} ${customerLastName}`.trim();
 
@@ -227,20 +241,28 @@ export const Catalog: React.FC = () => {
               (inputNorm.length > 2 && dbNameNorm.length > 2 && (inputNorm.includes(dbNameNorm) || dbNameNorm.includes(inputNorm)));
 
             if (!isSameName) {
-              let campoConflito = "Dados de contato";
+              const newDupErrors = { cpf: false, phone: false, email: false };
+              const newErrorMsgs = { cpf: '', phone: '', email: '' };
+
               const cPhoneDigits = (matchingCust.phone || '').replace(/\D/g, '');
               const cCpfDigits = (matchingCust.cpf || '').replace(/\D/g, '');
               const cEmailLower = (matchingCust.email || '').trim().toLowerCase();
 
               if (cleanPhoneDigits.length >= 8 && cPhoneDigits === cleanPhoneDigits) {
-                campoConflito = "Telefone/WhatsApp";
-              } else if (cleanEmailLower.length > 0 && cEmailLower === cleanEmailLower) {
-                campoConflito = "E-mail";
-              } else if (cleanCpfDigits.length >= 11 && cCpfDigits === cleanCpfDigits) {
-                campoConflito = "CPF";
+                newDupErrors.phone = true;
+                newErrorMsgs.phone = `Este número já pertence a ${matchingCust.name.toUpperCase()}`;
+              }
+              if (cleanEmailLower.length > 0 && cEmailLower === cleanEmailLower) {
+                newDupErrors.email = true;
+                newErrorMsgs.email = `Este e-mail já pertence a ${matchingCust.name.toUpperCase()}`;
+              }
+              if (cleanCpfDigits.length >= 11 && cCpfDigits === cleanCpfDigits) {
+                newDupErrors.cpf = true;
+                newErrorMsgs.cpf = `Este CPF já pertence a ${matchingCust.name.toUpperCase()}`;
               }
 
-              alert(`Atenção: Este ${campoConflito} já está cadastrado para o cliente "${matchingCust.name.toUpperCase()}". Utilize seus próprios dados para prosseguir com a compra.`);
+              setDuplicateErrors(newDupErrors);
+              setErrorMessages(newErrorMsgs);
               setIsSubmitting(false);
               return null;
             }
@@ -282,7 +304,27 @@ export const Catalog: React.FC = () => {
       return newOrderId;
     } catch (err: any) {
       console.error('Erro ao salvar pedido via API:', err);
-      alert(err.message || 'Erro ao processar pedido no servidor.');
+      const msg = err.message || '';
+      if (msg.includes('Telefone') || msg.includes('WhatsApp') || msg.includes('E-mail') || msg.includes('CPF')) {
+        const newDup = { cpf: false, phone: false, email: false };
+        const newMsgs = { cpf: '', phone: '', email: '' };
+        if (msg.includes('Telefone') || msg.includes('WhatsApp')) {
+          newDup.phone = true;
+          newMsgs.phone = msg;
+        }
+        if (msg.includes('E-mail')) {
+          newDup.email = true;
+          newMsgs.email = msg;
+        }
+        if (msg.includes('CPF')) {
+          newDup.cpf = true;
+          newMsgs.cpf = msg;
+        }
+        setDuplicateErrors(newDup);
+        setErrorMessages(newMsgs);
+      } else {
+        alert(msg || 'Erro ao processar pedido no servidor.');
+      }
       return null;
     } finally {
       setIsSubmitting(false);
@@ -522,31 +564,82 @@ export const Catalog: React.FC = () => {
                                 />
                             </div>
 
-                            <input
-                                type="text"
-                                placeholder="CPF (Opcional)"
-                                value={customerCpf}
-                                onChange={(e) => setCustomerCpf(e.target.value)}
-                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-green-500"
-                            />
+                            <div>
+                                <input
+                                    type="text"
+                                    placeholder="CPF (Opcional)"
+                                    value={customerCpf}
+                                    onChange={(e) => {
+                                        setCustomerCpf(e.target.value);
+                                        if (duplicateErrors.cpf) {
+                                            setDuplicateErrors(prev => ({ ...prev, cpf: false }));
+                                            setErrorMessages(prev => ({ ...prev, cpf: '' }));
+                                        }
+                                    }}
+                                    className={`w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:bg-white focus:ring-2 transition-all ${
+                                        duplicateErrors.cpf
+                                            ? 'border-red-500 ring-2 ring-red-500/20 bg-red-50/50'
+                                            : 'border-gray-200 focus:ring-green-500'
+                                    }`}
+                                />
+                                {duplicateErrors.cpf && (
+                                    <p className="text-xs text-red-600 font-semibold mt-1 px-1 flex items-center gap-1">
+                                        ⚠️ {errorMessages.cpf}
+                                    </p>
+                                )}
+                            </div>
 
-                            <input
-                                type="tel"
-                                placeholder="WhatsApp / Telefone *"
-                                value={customerPhone}
-                                onChange={(e) => setCustomerPhone(e.target.value)}
-                                required
-                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-green-500"
-                            />
+                            <div>
+                                <input
+                                    type="tel"
+                                    placeholder="WhatsApp / Telefone *"
+                                    value={customerPhone}
+                                    onChange={(e) => {
+                                        setCustomerPhone(e.target.value);
+                                        if (duplicateErrors.phone) {
+                                            setDuplicateErrors(prev => ({ ...prev, phone: false }));
+                                            setErrorMessages(prev => ({ ...prev, phone: '' }));
+                                        }
+                                    }}
+                                    required
+                                    className={`w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:bg-white focus:ring-2 transition-all ${
+                                        duplicateErrors.phone
+                                            ? 'border-red-500 ring-2 ring-red-500/20 bg-red-50/50'
+                                            : 'border-gray-200 focus:ring-green-500'
+                                    }`}
+                                />
+                                {duplicateErrors.phone && (
+                                    <p className="text-xs text-red-600 font-semibold mt-1 px-1 flex items-center gap-1">
+                                        ⚠️ {errorMessages.phone}
+                                    </p>
+                                )}
+                            </div>
 
-                            <input
-                                type="email"
-                                placeholder="E-mail *"
-                                value={customerEmail}
-                                onChange={(e) => setCustomerEmail(e.target.value)}
-                                required
-                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-green-500"
-                            />
+                            <div>
+                                <input
+                                    type="email"
+                                    placeholder="E-mail *"
+                                    value={customerEmail}
+                                    onChange={(e) => {
+                                        setCustomerEmail(e.target.value);
+                                        if (duplicateErrors.email) {
+                                            setDuplicateErrors(prev => ({ ...prev, email: false }));
+                                            setErrorMessages(prev => ({ ...prev, email: '' }));
+                                        }
+                                    }}
+                                    required
+                                    className={`w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:bg-white focus:ring-2 transition-all ${
+                                        duplicateErrors.email
+                                            ? 'border-red-500 ring-2 ring-red-500/20 bg-red-50/50'
+                                            : 'border-gray-200 focus:ring-green-500'
+                                    }`}
+                                />
+                                {duplicateErrors.email && (
+                                    <p className="text-xs text-red-600 font-semibold mt-1 px-1 flex items-center gap-1">
+                                        ⚠️ {errorMessages.email}
+                                    </p>
+                                )}
+                            </div>
                         </div>
                         
                         <div className="flex gap-2">
